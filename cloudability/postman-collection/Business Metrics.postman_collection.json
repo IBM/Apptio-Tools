@@ -1,0 +1,333 @@
+{
+	"info": {
+		"_postman_id": "12d292ee-d912-4cd0-8bbd-68cd98f8fce3",
+		"name": "Business Metrics",
+		"description": "Collection specifically dedicated to housing common-need Cloudability Business Metrics",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "SavingsPlan Coverage Rates Metric",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": [
+						{
+							"key": "username",
+							"value": "{{API_KEY}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "{{ACCEPT}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"name\": \"Savings Plan Coverage percentage\",\n    \"numberFormat\": \"number\",\n    \"defaultValueExpression\": \"0\",\n    \"statements\": [\n        {\n            \"matchExpression\": \"DIMENSION['lease_type'] == 'On-Demand' || DIMENSION['lease_type'] == 'Reserved' || DIMENSION['lease_type'] == 'Savings Plan'\",\n            \"valueExpression\": \"(METRIC['on_demand_hours'] + METRIC['reserved_hours']) / METRIC['usage_hours']\"\n        }\n    ]\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://api.cloudability.com/v3/internal/business-mappings/metrics",
+					"protocol": "https",
+					"host": [
+						"api",
+						"cloudability",
+						"com"
+					],
+					"path": [
+						"v3",
+						"internal",
+						"business-mappings",
+						"metrics"
+					]
+				},
+				"description": "Used to evaluate savings plan coverage rates based on exclusively on_demand_hours / usage_hours"
+			},
+			"response": []
+		},
+		{
+			"name": "Currency Converter Metric",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": [
+						{
+							"key": "username",
+							"value": "{{API_KEY}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "{{ACCEPT}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"defaultValueExpression\": \"0\",\n    \"kind\": \"BUSINESS_METRIC\",\n    \"name\": \"Currency Converter\",\n    \"numberFormat\": \"currency\",\n    \"preMatchExpression\": \"DIMENSION['lease_type'] == 'On-Demand' || DIMENSION['lease_type'] == 'Reserved' || DIMENSION['lease_type'] == 'Savings Plan'\",\n    \"statements\": [\n        {\n            \"matchExpression\": \"DIMENSION['invoice_date'] == '2019-08-01'\",\n            \"valueExpression\": \"METRIC['unblended_cost'] * 1.10\"\n        },\n        {\n            \"matchExpression\": \"DIMENSION['invoice_date'] == '2019-09-01'\",\n            \"valueExpression\": \"METRIC['unblended_cost'] * 1.42\"\n        },\n        {\n            \"matchExpression\": \"DIMENSION['invoice_date'] == '2019-10-01'\",\n            \"valueExpression\": \"METRIC['unblended_cost'] * 1.5\"\n        }\n    ]\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://api.cloudability.com/v3/internal/business-mappings/metrics",
+					"protocol": "https",
+					"host": [
+						"api",
+						"cloudability",
+						"com"
+					],
+					"path": [
+						"v3",
+						"internal",
+						"business-mappings",
+						"metrics"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "List Business Metrics",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": [
+						{
+							"key": "username",
+							"value": "{{API_KEY}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "{{ACCEPT}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"name\":\"Savings Plan Coverage (%age)\",\"numberFormat\":\"number\",\"defaultValueExpression\":\"0.00\",\"statements\":[{\"matchExpression\":\"DIMENSION['lease_type'] == 'On-Demand' || DIMENSION['lease_type'] == 'Savings Plan' \",\"valueExpression\":\"METRIC['reserved_hours'] / METRIC['usage_hours']\"}]}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://api.cloudability.com/v3/business-mappings/metrics",
+					"protocol": "https",
+					"host": [
+						"api",
+						"cloudability",
+						"com"
+					],
+					"path": [
+						"v3",
+						"business-mappings",
+						"metrics"
+					]
+				},
+				"description": "List all current Business Metrics"
+			},
+			"response": []
+		},
+		{
+			"name": "GET specific Business Metric",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": [
+						{
+							"key": "username",
+							"value": "{{API_KEY}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "{{ACCEPT}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"name\":\"Savings Plan Coverage (%age)\",\"numberFormat\":\"number\",\"defaultValueExpression\":\"0.00\",\"statements\":[{\"matchExpression\":\"DIMENSION['lease_type'] == 'On-Demand' || DIMENSION['lease_type'] == 'Savings Plan' \",\"valueExpression\":\"METRIC['reserved_hours'] / METRIC['usage_hours']\"}]}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://api.cloudability.com/v3/internal/business-mappings/{{index}}/metrics",
+					"protocol": "https",
+					"host": [
+						"api",
+						"cloudability",
+						"com"
+					],
+					"path": [
+						"v3",
+						"internal",
+						"business-mappings",
+						"{{index}}",
+						"metrics"
+					]
+				},
+				"description": "GET call to retrieve 1 Business Metric by index"
+			},
+			"response": []
+		},
+		{
+			"name": "DELETE specific Business Metric",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": [
+						{
+							"key": "username",
+							"value": "{{API_KEY}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "DELETE",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "{{ACCEPT}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"name\":\"Savings Plan Coverage (%age)\",\"numberFormat\":\"number\",\"defaultValueExpression\":\"0.00\",\"statements\":[{\"matchExpression\":\"DIMENSION['lease_type'] == 'On-Demand' || DIMENSION['lease_type'] == 'Savings Plan' \",\"valueExpression\":\"METRIC['reserved_hours'] / METRIC['usage_hours']\"}]}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://api.cloudability.com/v3/internal/business-mappings/{{index}}/metrics",
+					"protocol": "https",
+					"host": [
+						"api",
+						"cloudability",
+						"com"
+					],
+					"path": [
+						"v3",
+						"internal",
+						"business-mappings",
+						"{{index}}",
+						"metrics"
+					]
+				},
+				"description": "DELETE call to remove one Business Metric - danger will robinson!"
+			},
+			"response": []
+		},
+		{
+			"name": "Parse Fargate Name",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": [
+						{
+							"key": "username",
+							"value": "SFfRBxpfRzpxNF8eqq9u",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"name\": \"FargateName\",\n    \"kind\": \"BUSINESS_DIMENSION\",\n    \"defaultValue\": \"(not set)\",\n    \"statements\": [\n        {\n            \"matchExpression\": \"DIMENSION['enhanced_service_name'] == 'AWS ECS' && DIMENSION['resource_identifier'] FIND /.*:task\\\\/(.*)\\\\/.*/\",\n            \"valueExpression\": \"DIMENSION['resource_identifier'] REPLACE /.*:task\\\\/(.*)\\\\/.*/$1/\"\n        }\n    ]\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://api.cloudability.com/v3/business-mappings/",
+					"protocol": "https",
+					"host": [
+						"api",
+						"cloudability",
+						"com"
+					],
+					"path": [
+						"v3",
+						"business-mappings",
+						""
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"protocolProfileBehavior": {}
+}

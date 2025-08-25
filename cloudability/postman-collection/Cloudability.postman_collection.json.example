@@ -1,0 +1,684 @@
+{
+	"info": {
+		"_postman_id": "888156c4-4b02-4853-a4f5-d289cea966c1",
+		"name": "Cloudability",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Rightsizing",
+			"item": [
+				{
+					"name": "Rightsizing_EC2",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "password",
+									"value": "{{API_SEC}}",
+									"type": "string"
+								},
+								{
+									"key": "username",
+									"value": "{{API_KEY}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "{{CONTENT_TYPE}}",
+								"type": "text"
+							},
+							{
+								"key": "Accept",
+								"value": "{{ACCEPT}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{BASE_URL}}rightsizing/aws/recommendations/ec2",
+							"host": [
+								"{{BASE_URL}}rightsizing"
+							],
+							"path": [
+								"aws",
+								"recommendations",
+								"ec2"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Rightsizing_EBS",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "password",
+									"value": "{{API_SEC}}",
+									"type": "string"
+								},
+								{
+									"key": "username",
+									"value": "{{API_KEY}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "{{CONTENT_TYPE}}",
+								"type": "text"
+							},
+							{
+								"key": "Accept",
+								"value": "{{ACCEPT}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{BASE_URL}}rightsizing/aws/recommendations/ebs",
+							"host": [
+								"{{BASE_URL}}rightsizing"
+							],
+							"path": [
+								"aws",
+								"recommendations",
+								"ebs"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Rightsizing_AZURE_COMPUTE",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "password",
+									"value": "{{API_SEC}}",
+									"type": "string"
+								},
+								{
+									"key": "username",
+									"value": "{{API_KEY}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "{{CONTENT_TYPE}}",
+								"type": "text"
+							},
+							{
+								"key": "Accept",
+								"value": "{{ACCEPT}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{BASE_URL}}rightsizing/azure/recommendations/compute",
+							"host": [
+								"{{BASE_URL}}rightsizing"
+							],
+							"path": [
+								"azure",
+								"recommendations",
+								"compute"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Anomolies",
+			"item": [
+				{
+					"name": "Anomolies",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "password",
+									"value": "{{API_SEC}}",
+									"type": "string"
+								},
+								{
+									"key": "username",
+									"value": "{{API_KEY}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "{{CONTENT_TYPE}}",
+								"type": "text"
+							},
+							{
+								"key": "Accept",
+								"value": "{{ACCEPT}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{BASE_URL}}anomalies",
+							"host": [
+								"{{BASE_URL}}anomalies"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Anomolies_subscribe",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "password",
+									"value": "{{API_SEC}}",
+									"type": "string"
+								},
+								{
+									"key": "username",
+									"value": "{{API_KEY}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "Accept",
+								"type": "text",
+								"value": "{{ACCEPT}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{ \r\n  \"unusualSpendThreshold\": 100,\r\n  \"viewId\": \"11235\"\r\n}"
+						},
+						"url": {
+							"raw": "{{BASE_URL}}anomalies/subscriptions",
+							"host": [
+								"{{BASE_URL}}anomalies"
+							],
+							"path": [
+								"subscriptions"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Anomolies_subscribe_list",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "password",
+									"value": "{{API_SEC}}",
+									"type": "string"
+								},
+								{
+									"key": "username",
+									"value": "{{API_KEY}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "Accept",
+								"type": "text",
+								"value": "{{ACCEPT}}"
+							}
+						],
+						"url": {
+							"raw": "{{BASE_URL}}anomalies/subscriptions",
+							"host": [
+								"{{BASE_URL}}anomalies"
+							],
+							"path": [
+								"subscriptions"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Workload_prediction",
+			"item": [
+				{
+					"name": "Workload_prediction",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "password",
+									"value": "{{API_SEC}}",
+									"type": "string"
+								},
+								{
+									"key": "username",
+									"value": "{{API_KEY}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "{{CONTENT_TYPE}}",
+								"type": "text"
+							},
+							{
+								"key": "Accept",
+								"value": "{{ACCEPT}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{BASE_URL}}prediction/workload/instance/search/{vendor}",
+							"host": [
+								"{{BASE_URL}}prediction"
+							],
+							"path": [
+								"workload",
+								"instance",
+								"search",
+								"{vendor}"
+							]
+						},
+						"description": "Supported vendor values\r\n\r\n    'aws', 'azure', 'gcp' and 'oem'\r\nThese are the API endpoint to Cloudability Workload Placement Feature which is documented on our knowledge base. The endpoint provides much flexibility to further find a well priced option for a compute workload. Your starting point should generally be a workload with somewhat well known resource requirements. You can use the /search and /list endpoints to look from our database of known cloud and OEM vendor instance types to find one that matches the workload you are migrating. Once you have found an appropriate instance, you can then use that instance to request placement and pricing options from all of the supported cloud vendors.\r\nFor example you might know that the web application you are standing up for 6 hours of testing will get by with the equivalent of 1* m4.large. To specify the base line instance characteristics your workload requires you can chose either an instance type you are familiar with or the underlying instance attributes such as CPU cores or memory. With such details the Workplace Placement endpoint will return you a full set of placement options which meet the performance characteristics of the workload including ones that could provide surprisingly high price advantages in specific placements that wouldn't have been necessarily obvious. "
+					},
+					"response": []
+				},
+				{
+					"name": "Workload_prediction_list",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "password",
+									"value": "{{API_SEC}}",
+									"type": "string"
+								},
+								{
+									"key": "username",
+									"value": "{{API_KEY}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "{{CONTENT_TYPE}}",
+								"type": "text"
+							},
+							{
+								"key": "Accept",
+								"value": "{{ACCEPT}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{BASE_URL}}prediction/workload/instance/list",
+							"host": [
+								"{{BASE_URL}}prediction"
+							],
+							"path": [
+								"workload",
+								"instance",
+								"list"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Workload_placement",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "password",
+									"value": "{{API_SEC}}",
+									"type": "string"
+								},
+								{
+									"key": "username",
+									"value": "{{API_KEY}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "{{CONTENT_TYPE}}",
+								"type": "text"
+							},
+							{
+								"key": "Accept",
+								"value": "{{ACCEPT}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{BASE_URL}}prediction/workload/placement/{id}/aws",
+							"host": [
+								"{{BASE_URL}}prediction"
+							],
+							"path": [
+								"workload",
+								"placement",
+								"{id}",
+								"aws"
+							]
+						},
+						"description": "what is this?"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Containers",
+			"item": [
+				{
+					"name": "Clusters",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "{{API_KEY}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "{{CONTENT_TYPE}}",
+								"type": "text"
+							},
+							{
+								"key": "Accept",
+								"value": "{{ACCEPT}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "https://api.cloudability.com/v3/containers/clusters?pretty=true&start=2019-07-01&end=2019-09-30",
+							"protocol": "https",
+							"host": [
+								"api",
+								"cloudability",
+								"com"
+							],
+							"path": [
+								"v3",
+								"containers",
+								"clusters"
+							],
+							"query": [
+								{
+									"key": "pretty",
+									"value": "true"
+								},
+								{
+									"key": "start",
+									"value": "2019-07-01"
+								},
+								{
+									"key": "end",
+									"value": "2019-09-30"
+								}
+							]
+						},
+						"description": "Get a list of provisioned clusters for your organization, the date each cluster was provisioned, and a timestamp for the first and last date Cloudability received data for each cluster."
+					},
+					"response": []
+				},
+				{
+					"name": "List Containers Labels",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "{{API_KEY}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "{{CONTENT_TYPE}}",
+								"type": "text"
+							},
+							{
+								"key": "Accept",
+								"value": "{{ACCEPT}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "https://api.cloudability.com/v3/containers/labels?pretty=true&start=2019-09-01&end=2019-09-30",
+							"protocol": "https",
+							"host": [
+								"api",
+								"cloudability",
+								"com"
+							],
+							"path": [
+								"v3",
+								"containers",
+								"labels"
+							],
+							"query": [
+								{
+									"key": "pretty",
+									"value": "true"
+								},
+								{
+									"key": "start",
+									"value": "2019-09-01"
+								},
+								{
+									"key": "end",
+									"value": "2019-09-30"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Business Mappings",
+			"item": [
+				{
+					"name": "List Business Mapping",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "{{API_KEY}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "{{CONTENT_TYPE}}",
+								"type": "text"
+							},
+							{
+								"key": "Accept",
+								"value": "{{ACCEPT}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "https://api.cloudability.com/v3/business-mappings",
+							"protocol": "https",
+							"host": [
+								"api",
+								"cloudability",
+								"com"
+							],
+							"path": [
+								"v3",
+								"business-mappings"
+							]
+						},
+						"description": "List all the Business Mappings for an associated API key"
+					},
+					"response": []
+				}
+			],
+			"protocolProfileBehavior": {}
+		},
+		{
+			"name": "VIEWS",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": [
+						{
+							"key": "password",
+							"value": "{{API_SEC}}",
+							"type": "string"
+						},
+						{
+							"key": "username",
+							"value": "{{API_KEY}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "{{CONTENT_TYPE}}",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "{{ACCEPT}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{BASE_URL}}views",
+					"host": [
+						"{{BASE_URL}}views"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Base first call - GET",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": [
+						{
+							"key": "password",
+							"value": "{{API_SEC}}",
+							"type": "string"
+						},
+						{
+							"key": "username",
+							"value": "{{API_KEY}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "{{CONTENT_TYPE}}",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "{{ACCEPT}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{BASE_URL}}rightsizing/aws/recommendations/ec2",
+					"host": [
+						"{{BASE_URL}}rightsizing"
+					],
+					"path": [
+						"aws",
+						"recommendations",
+						"ec2"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
