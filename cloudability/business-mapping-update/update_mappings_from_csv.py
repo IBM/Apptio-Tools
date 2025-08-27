@@ -10,6 +10,32 @@ import sys
 import json
 from apptio_lib import cloudability as cldy
 
+'''
+Purpose: Update and create business mappings.
+Takes all CSV files in the current directory.
+The first column is the match dimension, and the rest are business mapping names.
+
+Notes:
+* The business mapping names must exactly match the names in Cloudability.
+* The match dimension should be in the same format we'd use when creating a BM via API
+  * e.g. TAG['Cost Center'], BUSINESS_DIMENSION['Cost Center']
+* Only one dimension is supported per CSV file.
+
+Example CSV:
+TAG['Cost Center'],Mapped Department,Mapped Team
+1234,Finance,Team A
+4321,HR,Team B
+5678,Finance,Team C
+
+Each business dimension created will group values into single statements.
+The above would create two statements for Mapped Department (Finance, HR)
+and three for Mapped Team (Team A, Team B, Team C).
+
+Usage:
+python update_mappings_from_csv.py <api_key> [-test] [-debug]
+
+'''
+
 def main():
     api_key = ''
     if len(sys.argv) >= 1:
@@ -45,22 +71,18 @@ def main():
 
                 headers = list(rows[0].keys())
                 match_dim = headers[0]
-                match_dim_type = 'DIMENSION'
-                bm_names = [headers[1]]
-                file_mappings = make_mappings(rows, match_dim, bm_names, match_dim_type)
-                break
+                bm_names = headers[1:]
+                file_mappings = make_mappings(rows, match_dim, bm_names)
 
+            for bm_name, bm in file_mappings.items():
 
-        for bm_name, bm in file_mappings.items():
-            # if the mapping already exists, merge the new values with the existing ones
-            if bm_name in new_mappings:
-                combined_statements = new_mappings[bm_name]['statements'] + bm['statements']
-                new_mappings[bm_name]['statements'] = combined_statements
-            else:
-                new_mappings[bm_name] = bm
-        
-        
-    
+                # if the mapping already exists, merge the new values with the existing ones
+                if bm_name in new_mappings:
+                    combined_statements = new_mappings[bm_name]['statements'] + bm['statements']
+                    new_mappings[bm_name]['statements'] = combined_statements
+                else:
+                    new_mappings[bm_name] = bm
+
     # get current mappings from Cloudability
     current_mappings = {}
     if not debug:
@@ -70,6 +92,17 @@ def main():
             current_mappings[mapping['name']] = mapping
 
     for new_mapping in new_mappings.values():
+        if debug:
+            bm_json = json.dumps(new_mapping, indent=4)
+            # check for Debug Files folder
+            if not os.path.exists('Debug Files'):
+                os.makedirs('Debug Files')
+            with open(f'Debug Files/{new_mapping["name"]}.json', 'w') as f:
+                f.write(bm_json)
+            print(f'Debug is on. No changes made to CLDY.')
+            print(f'File saved to Debug Files/{new_mapping["name"]}.json')
+            continue
+
         if new_mapping['name'] in current_mappings:
             current_mapping = current_mappings[new_mapping['name']]
             if current_mapping.get('isReadOnly'):
@@ -81,30 +114,11 @@ def main():
             print(f'Replacing {new_mapping["name"]} with new values')
             index = current_mapping['index']
             bm_ep = f'/business-mappings/{index}'
-            if debug:
-                bm_json = json.dumps(new_mapping, indent=4)
-                # check for Debug Files folder
-                if not os.path.exists('Debug Files'):
-                    os.makedirs('Debug Files')
-                with open(f'Debug Files/{new_mapping["name"]}.json', 'w') as f:
-                    f.write(bm_json)
-                print(f'Debug is on. No changes made to CLDY.')
-                print(f'File saved to Debug Files/{new_mapping["name"]}.json')
-            else:
-                response = cldy.put(bm_ep, api_key, new_mapping)
+            
+            response = cldy.put(bm_ep, api_key, data=new_mapping)
         else:
-            print(f'No existing mapping found for {new_mapping["name"]}. Creating new mapping.')
-            if debug:
-                bm_json = json.dumps(new_mapping, indent=4)
-                # check for Debug Files folder
-                if not os.path.exists('Debug Files'):
-                    os.makedirs('Debug Files')
-                with open(f'Debug Files/{new_mapping["name"]}.json', 'w') as f:
-                    f.write(bm_json)
-                print(f'Debug is on. No changes made to CLDY.')
-                print(f'File saved to Debug Files/{new_mapping["name"]}.json')
-            else:
-                response = cldy.post('/business-mappings', api_key, new_mapping)
+            print(f'No existing mapping found for {new_mapping["name"]}. Creating new mapping.')        
+            response = cldy.post('/business-mappings', api_key, data=new_mapping)
 
         if not debug and not isinstance(response, dict):
             print(f'Error creating mapping: {new_mapping["name"]}')
@@ -112,7 +126,7 @@ def main():
             cldy.parse_and_print_bm_errors(new_mapping, response)
 
 
-def make_mappings(rows, match_dim, bm_names, match_dim_type):
+def make_mappings(rows, match_dim, bm_names):
     bms = {}
 
     for bm_name in bm_names:
@@ -153,7 +167,7 @@ def make_mappings(rows, match_dim, bm_names, match_dim_type):
                 # escape single quotes with backslash
                 bm_value = bm_value.replace("'", "\\'")
             statement = {
-                "matchExpression": f"{match_dim_type}['{match_dim}'] IN ('{match_list_str}')",
+                "matchExpression": f"{match_dim} IN ('{match_list_str}')",
                 "valueExpression": f"'{bm_value}'"
             }
             if "\\" in bm_value:
@@ -169,7 +183,7 @@ def make_mappings(rows, match_dim, bm_names, match_dim_type):
                 
 def make_test_mappings():
     # mapping with purposefully bad matchExpression and valueExpression to test error handling
-    # if you use a working BM it will be uploaded to CLDY, so be careful!
+
     return {
         'Test Mapping': {
             "name": "Test Mapping",
@@ -177,12 +191,12 @@ def make_test_mappings():
             "defaultValue": "(not set)",
             'statements': [
                 {
-                    "matchExpression": "BUSINESS_DIMENSION['Account'] IN ('1234567890')",
+                    "matchExpression": "DIMENSION['product_name'] IN ('1234567890')",
                     "valueExpression": "'Test Mapping"
                     # missing closing quote
                 },
                 {
-                    "matchExpression": "BUSINESS_DIMENSION['Account'] IN ('0987654321', '1234', 123', '4533', '123')",
+                    "matchExpression": "DIMENSION['product_name'] IN ('0987654321', '1234', '123', '4533', '123')",
                     # missing opening quote
                     "valueExpression": "'Test Mapping'"
                 }

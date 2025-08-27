@@ -12,22 +12,29 @@ from charset_normalizer import from_path
 from apptio_lib import cloudability as cldy
 from apptio_lib import apptio as apptio
 
+'''
+Purpose: Update Account Group values for accounts based on CSV files
+Takes in all CSV files in the same directory.
+Looks for "vendor_account_id", "account_identifier", or "Account Number" as the first column and AG names the other columns
+Finds the matching account group Ids from the API and matches those IDs to the AG names in the column headers.
+updates all AG values found in the column headers to the associated IDs.
 
-# Purpose: Update Account Group values for accounts based on CSV files
-# Takes in all CSV files in the same directory.
-# Looks for "vendor_account_id" or "vendor_account_name" as the first column and AG names the other columns
-# Finds the matching account group Ids from the API and matches those IDs to the AG names in the column headers.
-# updates all AG values found in the column headers to the associated IDs.
-#
-# Prerequisite:
-#  * account groups must exist in the environment
-#  * uses Cloudability API key vs. FD public/secret
-#       Put cldy key on the command line
-# Known issues:
-#   * vendor account ID must be in format ####-####-#### for AWS account IDs. There is untested code to do this included
-#   * 429 errors for too many API requests. May need to run repeatedly if there are too many updates being made.
-#   * configurable delay has been added 0.5 - 1 sec seems to work best when making more than 1K updates
+Notes:
+ * Account groups must exist in the environment, they will not be created.
+ * Only Cloudability API key is currently supported. No FD public/secret as of yet.
+ * A backup CSV file is created each time this script is run.
+   * These backup files are compatible with this script for easy restoration.
 
+Known issues:
+  * For large numbers of accounts you may hit a rate limit.
+    * You may need to run this more than once if it fails.
+  * A delay can be added via command line argument. (0.5 seconds is the default.)
+    * -delay <seconds>
+
+Usage:
+python update_ag_entries.py <api_key> [-delay <seconds>]
+
+'''
 
 def main():
     if len(sys.argv) == 1:
@@ -38,6 +45,13 @@ def main():
     # opentoken_headers = make_opentoken_headers()
     opentoken_headers = {}
 
+    delay = 0.5
+    if '-delay' in sys.argv:
+        try:
+            delay_index = sys.argv.index('-delay')
+            delay = float(sys.argv[delay_index + 1])
+        except (ValueError, IndexError):
+            print(f'Invalid or missing delay value. Using default of {delay} seconds.')
 
     files = []
     for file in os.listdir('./'):
@@ -49,6 +63,16 @@ def main():
     if not files:
         print('No csv files found in current directory. Quitting')
         return False
+
+    account_groups_in_update = set()
+    for file in files:
+        # just grab the headers
+        encoding = find_encoding(file)
+        with open(file, 'r', encoding=encoding) as f:
+            reader = csv.reader(f)
+            header = next(reader)
+            for ag in header[1:]:
+                account_groups_in_update.add(ag)
 
     updates = parse_csv(files)
     if not updates:
@@ -63,6 +87,20 @@ def main():
     ag_lookup = {}
     for ag in account_groups:
         ag_lookup[ag['name']] = ag['id']
+
+    # quick check for valid AGs
+    not_found_ags_from_csv = set()
+    for ag in account_groups_in_update:
+        if ag not in ag_lookup:
+            not_found_ags_from_csv.add(ag)
+
+    if not_found_ags_from_csv:
+        print(f'Account Groups not found: {", ".join(not_found_ags_from_csv)}')
+        print('Valid Account Groups:')
+        for ag in ag_lookup:
+            print(f'\t{ag}')
+        return
+
     account_mapping = get_acct_mapping(api_key) #get list of accounts in Cldy
     # account_mapping acts as a dual lookup. ID to name and name to ID
 
@@ -128,16 +166,11 @@ def main():
 def parse_csv(csv_files): #find csv, find encoding, pass to parse function
     account_ag_values = {}
     for csv_file in csv_files:
-        use_encoding = ''
-        result = from_path(csv_file).best() #looking for encoding from library
-        if result is not None:
-            use_encoding = result.encoding
-        else:
-            # Fallback to something sensible, e.g. 'utf-8'
-            use_encoding = 'utf-8'
+        csv_encoding = find_encoding(csv_file)
+        
             
-        if use_encoding:
-            with open(csv_file, 'r', newline='', encoding=use_encoding) as csvfile:
+        if csv_encoding:
+            with open(csv_file, 'r', newline='', encoding=csv_encoding) as csvfile:
                 records = csv.DictReader(csvfile)
                 if records:
                     accounts = parse_ag_updates(records, account_ag_values)
@@ -166,6 +199,13 @@ def parse_ag_updates(records, account_ag_values={}): #parsing the values in the 
         account_ag_values[acc_id] = ag_entries
     return account_ag_values
 
+def find_encoding(csv_file):
+    csv_encoding = 'utf-8' # default
+    result = from_path(csv_file).best() # looking for encoding from library
+    if result is not None:
+        csv_encoding = result.encoding
+
+    return csv_encoding
 
 def get_vendors(api_key):
     # Get the list of vendors from the API
@@ -270,11 +310,10 @@ def save_ag_entries_backup(ag_entries, ag_lookup):
     
 
 
-def update_ag_entries(api_key, update_data):
+def update_ag_entries(api_key, update_data, delay=0.5):
     #Updates AG entries based on changes found when comparing CSV to current Cldy information
     end_point = f'/account_group_entries/'
     # set min time between requests to avoid rate limiting
-    delay = 0.50 #time in secs
     timer = time()
     for data in update_data:
         if data['id']:

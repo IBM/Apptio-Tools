@@ -1,4 +1,4 @@
-vendor_account_identifier,Test
-1234,abcd
-6234,bcdf
-2345,abcd
+DIMENSION['vendor_account_identifier'],Business Dimension Cost Center, Business Dimension Env
+1234,abcd,prod
+6234,bcdf,dev
+2345,abcd,dev
