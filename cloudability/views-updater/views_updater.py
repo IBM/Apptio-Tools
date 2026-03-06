@@ -8,22 +8,25 @@ import os
 import csv
 import sys
 import json
+import argparse
 import requests
 from time import time, sleep
 from charset_normalizer import from_path
 from apptio_lib import cloudability as cldy
 
+# Add parent directory to path to import auth_helper
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from auth_helper import setup_authentication, add_auth_arguments, parse_legacy_args, get_region_from_args
+
 """
 Used for mass creation and updating of views in Cloudability.
 
-General usage
-python view_updater.py <api_key> [-region <region>]
-
 This script reads CSV files in the current directory
 where each CSV file contains view definitions.
+Supports both Cloudability API key and Frontdoor public/private key authentication.
 
-A view is defined by its name. 
-Any additional lines with the same view name will add filters to that view. 
+A view is defined by its name.
+Any additional lines with the same view name will add filters to that view.
 
 The CSV should have the following format:
 View Name, Dimension, Comparator, Value1, Value2, ...
@@ -60,28 +63,43 @@ A reminder of valid Cloudability view comparators:
 - =@ : Contains
 - !=@ : Does Not Contain
 
-
+Usage:
+  # Cloudability API Key:
+  python views_updater.py --api-key YOUR_KEY
+  
+  # Frontdoor Authentication:
+  python views_updater.py --frontdoor-public PUB --frontdoor-private PRIV --domain DOMAIN
+  
+  # Legacy format (still supported):
+  python views_updater.py YOUR_API_KEY
 
 """
 
 def main():
 
-    if len(sys.argv) < 2:
-        print("Usage: python view_updater.py <api_key>")
-        sys.exit(1)
-
-    api_key = sys.argv[1]
-
-    region = ''
-    if len(sys.argv) > 2:
-        for arg in sys.argv[2:]:
-            if 'region' in arg:
-                # set region to next arg index
-                region = sys.argv[sys.argv.index(arg) + 1]             
+    # Parse arguments
+    parser = argparse.ArgumentParser(
+        description='Mass create and update views in Cloudability from CSV files',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=__doc__
+    )
+    
+    # Add authentication arguments
+    add_auth_arguments(parser)
+    
+    # Handle legacy format (positional API key)
+    sys.argv = parse_legacy_args(sys.argv)
+    
+    args = parser.parse_args()
+    
+    # Setup authentication
+    api_key, opentoken_headers = setup_authentication(args)
+    
+    region = get_region_from_args(args)
 
     current_views = {}
     views_ep = '/views'
-    views_response = cldy.get(views_ep, api_key=api_key, region=region)
+    views_response = cldy.get(views_ep, api_key=api_key, opentoken_headers=opentoken_headers, region=region)
     if not views_response:
         print(views_response)
         print("Failed to retrieve views.")
@@ -147,11 +165,11 @@ def main():
         if view_obj['id']:
             print(f"Updating view '{new_name}' with ID {view_obj['id']}.")
             ep = f"{views_ep}/{view_obj['id']}"
-            response = cldy.put(ep, api_key=api_key, data=view_obj, region=region)
+            response = cldy.put(ep, api_key=api_key, data=view_obj, opentoken_headers=opentoken_headers, region=region)
         else:
             print(f"Creating new view '{new_name}'.")
             print(json.dumps(view_obj, indent=2))
-            response = cldy.post(views_ep, api_key=api_key, data=view_obj)
+            response = cldy.post(views_ep, api_key=api_key, data=view_obj, opentoken_headers=opentoken_headers)
 
         if not response:
             print(f"Failed to update or create view '{new_name}'.")

@@ -8,7 +8,12 @@ import os
 import csv
 import sys
 import json
+import argparse
 from apptio_lib import cloudability as cldy
+
+# Add parent directory to path to import auth_helper
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from auth_helper import setup_authentication, add_auth_arguments, parse_legacy_args
 
 '''
 Purpose: Update and create business mappings.
@@ -20,6 +25,7 @@ Notes:
 * The match dimension should be in the same format we'd use when creating a BM via API
   * e.g. TAG['Cost Center'], BUSINESS_DIMENSION['Cost Center']
 * Only one dimension is supported per CSV file.
+* Supports both Cloudability API key and Frontdoor public/private key authentication.
 
 Example CSV:
 TAG['Cost Center'],Mapped Department,Mapped Team
@@ -32,28 +38,51 @@ The above would create two statements for Mapped Department (Finance, HR)
 and three for Mapped Team (Team A, Team B, Team C).
 
 Usage:
-python update_mappings_from_csv.py <api_key> [-test] [-debug]
+  # Cloudability API Key:
+  python update_mappings_from_csv.py --api-key YOUR_KEY [--test] [--debug]
+  
+  # Frontdoor Authentication:
+  python update_mappings_from_csv.py --frontdoor-public PUB --frontdoor-private PRIV --domain DOMAIN [--test] [--debug]
+  
+  # Legacy format (still supported):
+  python update_mappings_from_csv.py YOUR_API_KEY [--test] [--debug]
 
 '''
 
 def main():
-    api_key = ''
-    if len(sys.argv) >= 1:
-        api_key = sys.argv[1]
-    else:
-       print('Missing api key. Quitting')
-
-    debug = False
-    region = ''
+    # Parse arguments
+    parser = argparse.ArgumentParser(
+        description='Update and create business mappings from CSV files',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=__doc__
+    )
     
-    for arg in sys.argv:
-        if 'debug' in arg:
-            debug = True
-        
-    use_test_mapping = False
-    if len(sys.argv) >= 2:
-        if '-test' in sys.argv:
-            use_test_mapping = True
+    # Add authentication arguments
+    add_auth_arguments(parser)
+    
+    # Add script-specific arguments
+    parser.add_argument(
+        '--test',
+        action='store_true',
+        help='Use test mappings instead of CSV files'
+    )
+    
+    parser.add_argument(
+        '--debug',
+        action='store_true',
+        help='Debug mode - save mappings to files without updating Cloudability'
+    )
+    
+    # Handle legacy format (positional API key)
+    sys.argv = parse_legacy_args(sys.argv)
+    
+    args = parser.parse_args()
+    
+    # Setup authentication
+    api_key, opentoken_headers = setup_authentication(args)
+    
+    debug = args.debug
+    use_test_mapping = args.test
 
     new_mappings = {}
     if use_test_mapping:
@@ -86,7 +115,7 @@ def main():
     # get current mappings from Cloudability
     current_mappings = {}
     if not debug:
-        current_mappings_result = cldy.get('/business-mappings', api_key=api_key)
+        current_mappings_result = cldy.get('/business-mappings', api_key=api_key, opentoken_headers=opentoken_headers)
         current_mappings_result = current_mappings_result['result']
         for mapping in current_mappings_result:
             current_mappings[mapping['name']] = mapping
@@ -115,10 +144,10 @@ def main():
             index = current_mapping['index']
             bm_ep = f'/business-mappings/{index}'
             
-            response = cldy.put(bm_ep, api_key, data=new_mapping)
+            response = cldy.put(bm_ep, api_key=api_key, data=new_mapping, opentoken_headers=opentoken_headers)
         else:
-            print(f'No existing mapping found for {new_mapping["name"]}. Creating new mapping.')        
-            response = cldy.post('/business-mappings', api_key, data=new_mapping)
+            print(f'No existing mapping found for {new_mapping["name"]}. Creating new mapping.')
+            response = cldy.post('/business-mappings', api_key=api_key, data=new_mapping, opentoken_headers=opentoken_headers)
 
         if not debug and not isinstance(response, dict):
             print(f'Error creating mapping: {new_mapping["name"]}')
