@@ -479,7 +479,8 @@ This creates a 3-level hierarchy:
 #### Features
 - Creates new views or updates existing ones
 - Supports multiple filters per view
-- Preserves sharing settings when updating
+- Configure organization sharing for new views
+- Preserves sharing settings when updating existing views
 - Handles all Cloudability filter comparators
 - Can process multiple CSV files
 
@@ -518,9 +519,10 @@ python views_updater.py
 
 **Columns:**
 1. **View Name** - Name of the view
-2. **Dimension** - The field to filter on
-3. **Comparator** - Filter operator (see below)
-4. **Value1, Value2, ...** - Values to filter (multiple columns allowed)
+2. **Shared With Org** - Share with organization: `true` or `false` (for new views only)
+3. **Dimension** - The field to filter on
+4. **Comparator** - Filter operator (see below)
+5. **Value1, Value2, ...** - Values to filter (multiple columns allowed)
 
 **Valid Comparators:**
 - `==` : Equals
@@ -530,21 +532,24 @@ python views_updater.py
 
 **Example CSV:**
 ```csv
-View Name,Dimension,Comparator,Value1,Value2,Value3
-Dev Environment,tag1,=@,dev,staging,nonprod
-Dev Environment,vendor_identifier,!=,123412341234
-Prod Environment,tag1,==,prod,production
-Prod Environment,account_identifier,==,123412341234,432143214321
+View Name,Shared With Org,Dimension,Comparator,Value1,Value2,Value3
+Dev Environment,true,tag1,=@,dev,staging,nonprod
+Dev Environment,true,vendor_identifier,!=,123412341234
+Prod Environment,false,tag1,==,prod,production
+Prod Environment,false,account_identifier,==,123412341234,432143214321
 ```
 
 This creates:
-- **Dev Environment** view with 4 filters
-- **Prod Environment** view with 4 filters
+- **Dev Environment** view (shared with organization) with 4 filters
+- **Prod Environment** view (not shared) with 4 filters
 
 #### Important Notes
 - Multiple rows with the same view name add filters to that view
+- **Shared With Org** only applies when creating NEW views
+  - Accepts: `true`, `false` (case-insensitive)
+  - If multiple rows for same view have different values, the LAST row's value is used
+- Existing views preserve their current sharing settings (CSV value is ignored)
 - Existing views are updated (not replaced) if filters differ
-- Sharing settings are preserved when updating existing views
 - It's easier to use multiple rows than putting all values in one row
 
 #### Example Workflow

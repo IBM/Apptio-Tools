@@ -29,29 +29,34 @@ A view is defined by its name.
 Any additional lines with the same view name will add filters to that view.
 
 The CSV should have the following format:
-View Name, Dimension, Comparator, Value1, Value2, ...
+View Name, Shared With Org, Dimension, Comparator, Value1, Value2, ...
 
 Example CSV:
-View Name, Dimension, Comparator
-Dev,tag1,=@,dev,staging,nonprod
-Dev,vendor_identifier,!=,123412341234
-Prod,tag1,==,prod
-Prod,tag1,==,production
-Prod,account_identifier,==,123412341234,432143214321
+View Name, Shared With Org, Dimension, Comparator
+Dev,true,tag1,=@,dev,staging,nonprod
+Dev,true,vendor_identifier,!=,123412341234
+Prod,false,tag1,==,prod
+Prod,false,tag1,==,production
+Prod,false,account_identifier,==,123412341234,432143214321
 
 
 This would result in two views:
-1. A view named "Dev" with four filters
+1. A view named "Dev" (shared with organization) with four filters
     -tag1 =@ dev
     -tag1 =@ staging
     -tag1 =@ nonprod
     -vendor_identifier != 123412341234
-2. A view named "Prod" with four filters
+2. A view named "Prod" (not shared with organization) with four filters
     -tag1 == prod
     -tag1 == production
     -account_identifier == 123412341234
     -account_identifier == 432143214321
 
+Notes on "Shared With Org":
+- Accepts "true" or "false" (case-insensitive)
+- Only applied when CREATING new views
+- Existing views preserve their current sharing settings
+- If multiple rows for same view have different values, the LAST row's value is used
 
 It's often easier to create CSVs with many lines,
 as opposed to keeping all values on the same line.
@@ -129,16 +134,29 @@ def main():
     # time for the csvs!
     csv_files = [f for f in os.listdir('.') if f.endswith('.csv')]
     new_views = {}
+    view_shared_settings = {}  # Track shared_with_org per view (last row wins)
+    
     for csv_file in csv_files:
         with open(csv_file, 'r', encoding='utf-8') as file:
             reader = csv.reader(file)
             for row in reader:
                 if row[0] == ['View Name']:
                     continue
+                
+                # Parse CSV: View Name, Shared With Org, Dimension, Comparator, Value1, Value2, ...
                 view_name = row[0]
-                filter_dim = row[1]
-                comparator = row[2]
-                filter_values = row[3:]
+                shared_with_org_str = row[1].strip().lower() if len(row) > 1 else 'false'
+                filter_dim = row[2] if len(row) > 2 else ''
+                comparator = row[3] if len(row) > 3 else ''
+                filter_values = row[4:] if len(row) > 4 else []
+                
+                # Parse shared_with_org (true/false, case-insensitive)
+                shared_with_org = shared_with_org_str in ['true', '1', 'yes']
+                
+                # Store the shared_with_org value (last row wins if there are conflicts)
+                view_shared_settings[view_name] = shared_with_org
+                
+                # Build filters
                 filters = []
                 for value in filter_values:
                     if value:
@@ -148,7 +166,7 @@ def main():
                             "value": value
                         })
 
-
+                # Add filters to view
                 if view_name in new_views:
                     new_views[view_name].extend(filters)
                 else:
@@ -159,14 +177,20 @@ def main():
         id = None
         shared_with_users = []
         shared_with_org = False
-        if new_name in current_views:        
+        is_new_view = new_name not in current_views
+        
+        if new_name in current_views:
             if filters == current_views[new_name]['filters']:
                 print(f"View '{new_name}' already exists with the same filters. Skipping update.")
                 continue
 
             id = current_views[new_name]['id']
             shared_with_users = current_views[new_name].get('sharedWithUsers', [])
+            # Preserve existing sharedWithOrganization for existing views
             shared_with_org = current_views[new_name].get('sharedWithOrganization', False)
+        else:
+            # For new views, use the value from CSV
+            shared_with_org = view_shared_settings.get(new_name, False)
 
         view_obj = {
                 "id": id,
@@ -181,7 +205,8 @@ def main():
             ep = f"{views_ep}/{view_obj['id']}"
             response = cldy.put(ep, api_key=api_key, data=view_obj, opentoken_headers=opentoken_headers, region=region)
         else:
-            print(f"Creating new view '{new_name}'.")
+            shared_status = "shared with organization" if shared_with_org else "not shared with organization"
+            print(f"Creating new view '{new_name}' ({shared_status}).")
             print(json.dumps(view_obj, indent=2))
             response = cldy.post(views_ep, api_key=api_key, data=view_obj, opentoken_headers=opentoken_headers)
 
