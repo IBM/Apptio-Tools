@@ -133,6 +133,8 @@ def main():
 
     # time for the csvs!
     csv_files = [f for f in os.listdir('.') if f.endswith('.csv')]
+    # Skip example files
+    csv_files = [f for f in csv_files if not f.startswith('example_')]
     new_views = {}
     view_shared_settings = {}  # Track shared_with_org per view (last row wins)
     
