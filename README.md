@@ -520,9 +520,18 @@ python views_updater.py
 **Columns:**
 1. **View Name** - Name of the view
 2. **Shared With Org** - Share with organization: `true` or `false` (for new views only)
-3. **Dimension** - The field to filter on
+3. **Dimension** - The field to filter on (must use API names for Business Dimensions and Account Groups)
 4. **Comparator** - Filter operator (see below)
 5. **Value1, Value2, ...** - Values to filter (multiple columns allowed)
+
+**⚠️ IMPORTANT: Use API Names for Dimensions**
+
+When specifying dimensions in the CSV, you must use API names:
+- **Business Dimensions**: Use `categoryX` format (e.g., `category1`, `category10`, `category15`)
+- **Account Groups**: Use `group_nameX` format (e.g., `group_name1`, `group_name5`)
+- **Tags**: Use the API name which is `tagX` where 'X' is the tag dimension index number from the Tags & Labels screen in CLDY (e.g., `tag1`, `tag2`, `tag3`, etc.)
+
+- **Standard dimensions**: Use API names (e.g., `vendor_account_identifier`, `account_identifier`)
 
 **Valid Comparators:**
 - `==` : Equals
@@ -535,8 +544,8 @@ python views_updater.py
 View Name,Shared With Org,Dimension,Comparator,Value1,Value2,Value3
 Dev Environment,true,tag1,=@,dev,staging,nonprod
 Dev Environment,true,vendor_identifier,!=,123412341234
-Prod Environment,false,tag1,==,prod,production
-Prod Environment,false,account_identifier,==,123412341234,432143214321
+Prod Environment,false,category10,==,prod,production
+Prod Environment,false,group_name5,==,enterprise tenants,MCP
 ```
 
 This creates:
@@ -663,7 +672,7 @@ python script_name.py
 - Process smaller batches of data
 
 #### "Account Groups not found"
-**Solution:** 
+**Solution:**
 - Verify the account group names in your CSV exactly match those in Cloudability
 - Check for extra spaces or typos
 - The script will list all valid account groups when this error occurs

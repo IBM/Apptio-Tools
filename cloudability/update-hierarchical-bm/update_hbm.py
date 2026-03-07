@@ -7,8 +7,11 @@ SPDX-License-Identifier: Apache-2.0
 """
 Example CSV and resulting JSON payload for a Hierarchical Business Mapping (HBM) in Cloudability.
 This is the same format of the CSV files used for importing HBM data in the UI.
+
+⚠️ IMPORTANT: The first column must be the exact name of an existing Business Mapping in Cloudability.
 * Note * We assume that the default value is (not set) (aka null) for each entry.
-Also note that the first column must exactly match the name of an existing business mapping.
+
+Example CSV:
 Application, L2, L3
 A, LA, LC
 B, LA, LC
@@ -93,6 +96,10 @@ def main():
     # It reads CSV files in the current directory, where each file corresponds to one HBM
     # The name of the file should exactly match the name of the HBM in Cloudability.
     # The format of the CSV should match the template from Cloudability.
+    #
+    # ⚠️ IMPORTANT: The first column in the CSV must be the exact name of an existing
+    # Business Mapping in Cloudability (not the API name like 'categoryX').
+    #
     # Supports both Cloudability API key and Frontdoor public/private key authentication.
     ####
 

@@ -31,13 +31,19 @@ Any additional lines with the same view name will add filters to that view.
 The CSV should have the following format:
 View Name, Shared With Org, Dimension, Comparator, Value1, Value2, ...
 
+⚠️ IMPORTANT: Dimension Column Must Use API Names
+- Business Dimensions: Use 'categoryX' format (e.g., category1, category10, category15)
+- Account Groups: Use 'group_nameX' format (e.g., group_name1, group_name5)
+- Tags: Use tag name directly (e.g., tag1, Environment, CostCenter)
+- Standard dimensions: Use API names (e.g., vendor_account_identifier, account_identifier)
+
 Example CSV:
 View Name, Shared With Org, Dimension, Comparator
 Dev,true,tag1,=@,dev,staging,nonprod
 Dev,true,vendor_identifier,!=,123412341234
-Prod,false,tag1,==,prod
-Prod,false,tag1,==,production
-Prod,false,account_identifier,==,123412341234,432143214321
+Prod,false,category10,==,prod
+Prod,false,category10,==,production
+Prod,false,group_name5,==,thing 1,thing2
 
 
 This would result in two views:
@@ -47,10 +53,10 @@ This would result in two views:
     -tag1 =@ nonprod
     -vendor_identifier != 123412341234
 2. A view named "Prod" (not shared with organization) with four filters
-    -tag1 == prod
-    -tag1 == production
-    -account_identifier == 123412341234
-    -account_identifier == 432143214321
+    -category10 == prod
+    -category10 == production
+    -group_name5 == thing1
+    -group_name5 == thing2
 
 Notes on "Shared With Org":
 - Accepts "true" or "false" (case-insensitive)
