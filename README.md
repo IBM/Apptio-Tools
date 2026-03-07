@@ -41,28 +41,81 @@ Before using these tools, ensure you have:
 
 ## Installation
 
-### 1. Install the Apptio Library
+### Quick Start (Recommended)
 
-These tools require the [Apptio Tools Library](https://github.com/ibm/apptio-tools-lib). Install it using pip:
+1. **Clone this repository:**
+   ```bash
+   git clone https://github.com/IBM/Apptio-Tools.git
+   cd Apptio-Tools
+   ```
 
+2. **Install all dependencies at once:**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. **Set up your credentials** (optional but recommended):
+   ```bash
+   cp .env.example .env
+   # Edit .env with your API keys
+   ```
+
+4. **Run any script** - dependencies will be automatically checked!
+
+### Automatic Dependency Checking
+
+**New Feature!** All scripts now automatically check for missing dependencies when you run them.
+
+- ✅ **Detects missing packages** before the script runs
+- 📝 **Shows clear installation instructions** with multiple options
+- 💡 **Prompts to install** with your permission (never automatic)
+- 🪟 **Checks Windows PowerShell policies** (informational only)
+
+**Example output when dependencies are missing:**
+```
+⚠️  DEPENDENCY CHECK
+======================================================================
+❌ REQUIRED packages are missing:
+
+  📦 charset-normalizer
+     Purpose: Character encoding detection for CSV files
+     Used by: Account Group Updater, Views Updater
+
+📝 INSTALLATION OPTIONS:
+======================================================================
+
+✅ RECOMMENDED: Install all dependencies at once
+   pip install -r requirements.txt
+
+❓ Would you like to install the missing dependencies now? (yes/no):
+```
+
+**To skip the check** (not recommended):
 ```bash
+python script_name.py --skip-dependency-check [other arguments]
+```
+
+### Manual Installation
+
+If you prefer to install dependencies manually:
+
+**Option 1: Install from requirements.txt**
+```bash
+pip install -r requirements.txt
+```
+
+**Option 2: Install individual packages**
+```bash
+pip install charset-normalizer requests
 pip install git+https://github.com/ibm/apptio-tools-lib.git
 ```
 
-### 2. Install Additional Dependencies
-
-Some tools require additional Python packages:
-
+**Optional but recommended:**
 ```bash
-pip install charset-normalizer requests
+pip install python-dotenv  # For automatic .env file loading
 ```
 
-### 3. Clone This Repository
-
-```bash
-git clone https://github.com/IBM/Apptio-Tools.git
-cd Apptio-Tools
-```
+For detailed troubleshooting and advanced setup options, see [DEPENDENCY_SETUP.md](DEPENDENCY_SETUP.md).
 
 ## Authentication
 
@@ -527,6 +580,34 @@ See the [Postman Collection README](cloudability/postman-collection/README.md) f
 ---
 
 ## Troubleshooting
+
+### Dependency Issues
+
+For detailed dependency troubleshooting, see [DEPENDENCY_SETUP.md](DEPENDENCY_SETUP.md).
+
+**Quick fixes:**
+
+#### "No module named 'apptio_lib'" or other import errors
+**Solution:** Install dependencies:
+```bash
+pip install -r requirements.txt
+```
+
+Or let the script's automatic dependency checker guide you through installation.
+
+#### "pip: command not found"
+**Solution:** Use python -m pip:
+```bash
+python -m pip install -r requirements.txt
+```
+
+#### Windows PowerShell execution policy errors
+**Solution:** Either:
+1. Run in Command Prompt (cmd.exe) instead of PowerShell
+2. Update policy (as Administrator):
+   ```powershell
+   Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+   ```
 
 ### Common Issues
 

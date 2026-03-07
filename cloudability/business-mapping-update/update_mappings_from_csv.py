@@ -73,10 +73,24 @@ def main():
         help='Debug mode - save mappings to files without updating Cloudability'
     )
     
+    parser.add_argument(
+        '--skip-dependency-check',
+        action='store_true',
+        help='Skip the dependency check at startup'
+    )
+    
     # Handle legacy format (positional API key)
     sys.argv = parse_legacy_args(sys.argv)
     
     args = parser.parse_args()
+    
+    # Check dependencies unless explicitly skipped
+    if not args.skip_dependency_check:
+        from dependency_checker import check_dependencies
+        if not check_dependencies(include_optional=True, silent=False):
+            print('\n❌ Cannot proceed without required dependencies.')
+            print('   Run with --skip-dependency-check to bypass this check (not recommended).')
+            sys.exit(1)
     
     # Setup authentication
     api_key, opentoken_headers = setup_authentication(args)
