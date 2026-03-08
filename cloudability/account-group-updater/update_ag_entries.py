@@ -8,14 +8,20 @@ import os
 import csv
 import sys
 import argparse
-from time import time, sleep
-from charset_normalizer import from_path
-from apptio_lib import cloudability as cldy
-from apptio_lib import apptio as apptio
 
 # Add parent directory to path to import auth_helper
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from auth_helper import setup_authentication, add_auth_arguments, parse_legacy_args
+
+# Conditional imports - will be checked by dependency_checker before use
+try:
+    from time import time, sleep
+    from charset_normalizer import from_path
+    from apptio_lib import cloudability as cldy
+    from apptio_lib import apptio as apptio
+except ImportError:
+    # Dependencies will be checked by dependency_checker in main()
+    pass
 
 '''
 Purpose: Update Account Group values for accounts based on CSV files

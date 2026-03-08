@@ -9,14 +9,20 @@ import csv
 import sys
 import json
 import argparse
-import requests
-from time import time, sleep
-from charset_normalizer import from_path
-from apptio_lib import cloudability as cldy
 
 # Add parent directory to path to import auth_helper
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from auth_helper import setup_authentication, add_auth_arguments, parse_legacy_args, get_region_from_args
+
+# Conditional imports - will be checked by dependency_checker before use
+try:
+    import requests
+    from time import time, sleep
+    from charset_normalizer import from_path
+    from apptio_lib import cloudability as cldy
+except ImportError:
+    # Dependencies will be checked by dependency_checker in main()
+    pass
 
 """
 Used for mass creation and updating of views in Cloudability.
