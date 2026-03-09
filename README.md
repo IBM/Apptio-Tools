@@ -192,12 +192,20 @@ export APPTIO_PUBLIC_KEY=your_public_key
 export APPTIO_PRIVATE_KEY=your_private_key
 export APPTIO_DOMAIN=your_domain
 
-# Windows PowerShell
+# Windows PowerShell (Current Session Only)
 $env:CLOUDABILITY_API_KEY="your_api_key"
 # OR
 $env:APPTIO_PUBLIC_KEY="your_public_key"
 $env:APPTIO_PRIVATE_KEY="your_private_key"
 $env:APPTIO_DOMAIN="your_domain"
+
+# Windows PowerShell (Persistent - Survives Session Restarts)
+[System.Environment]::SetEnvironmentVariable('CLOUDABILITY_API_KEY', 'your_api_key', 'User')
+# OR
+[System.Environment]::SetEnvironmentVariable('APPTIO_PUBLIC_KEY', 'your_public_key', 'User')
+[System.Environment]::SetEnvironmentVariable('APPTIO_PRIVATE_KEY', 'your_private_key', 'User')
+[System.Environment]::SetEnvironmentVariable('APPTIO_DOMAIN', 'your_domain', 'User')
+# Note: You'll need to restart PowerShell to see persistent variables
 ```
 
 Then run scripts without passing credentials:
