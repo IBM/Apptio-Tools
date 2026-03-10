@@ -1,0 +1,15 @@
+# Apptio-Tools Dependencies
+# Install all dependencies with: pip install -r requirements.txt
+
+# Core library - Required for all scripts
+git+https://github.com/ibm/apptio-tools-lib.git
+
+# Character encoding detection - Required for CSV processing
+charset-normalizer>=3.0.0
+
+# HTTP requests library - Required for API calls
+requests>=2.28.0
+
+# Optional: Environment variable management from .env files
+# Recommended for easier credential management
+python-dotenv>=0.19.0

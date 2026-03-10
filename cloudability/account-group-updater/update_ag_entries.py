@@ -7,10 +7,21 @@ SPDX-License-Identifier: Apache-2.0
 import os
 import csv
 import sys
-from time import time, sleep
-from charset_normalizer import from_path
-from apptio_lib import cloudability as cldy
-from apptio_lib import apptio as apptio
+import argparse
+
+# Add parent directory to path to import auth_helper
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from auth_helper import setup_authentication, add_auth_arguments, parse_legacy_args
+
+# Conditional imports - will be checked by dependency_checker before use
+try:
+    from time import time, sleep
+    from charset_normalizer import from_path
+    from apptio_lib import cloudability as cldy
+    from apptio_lib import apptio as apptio
+except ImportError:
+    # Dependencies will be checked by dependency_checker in main()
+    pass
 
 '''
 Purpose: Update Account Group values for accounts based on CSV files
@@ -21,7 +32,7 @@ updates all AG values found in the column headers to the associated IDs.
 
 Notes:
  * Account groups must exist in the environment, they will not be created.
- * Only Cloudability API key is currently supported. No FD public/secret as of yet.
+ * Supports both Cloudability API key and Frontdoor public/private key authentication.
  * A backup CSV file is created each time this script is run.
    * These backup files are compatible with this script for easy restoration.
 
@@ -29,29 +40,61 @@ Known issues:
   * For large numbers of accounts you may hit a rate limit.
     * You may need to run this more than once if it fails.
   * A delay can be added via command line argument. (0.5 seconds is the default.)
-    * -delay <seconds>
 
 Usage:
-python update_ag_entries.py <api_key> [-delay <seconds>]
+  # Cloudability API Key:
+  python update_ag_entries.py --api-key YOUR_KEY [--delay SECONDS]
+  
+  # Frontdoor Authentication:
+  python update_ag_entries.py --frontdoor-public PUB --frontdoor-private PRIV --domain DOMAIN [--region REGION] [--delay SECONDS]
+  
+  # Legacy format (still supported):
+  python update_ag_entries.py YOUR_API_KEY [--delay SECONDS]
 
 '''
 
 def main():
-    if len(sys.argv) == 1:
-        print('Missing api key. Quitting')
-        return
-    api_key = sys.argv[1]
-
-    # opentoken_headers = make_opentoken_headers()
-    opentoken_headers = {}
-
-    delay = 0.5
-    if '-delay' in sys.argv:
-        try:
-            delay_index = sys.argv.index('-delay')
-            delay = float(sys.argv[delay_index + 1])
-        except (ValueError, IndexError):
-            print(f'Invalid or missing delay value. Using default of {delay} seconds.')
+    # Parse arguments
+    parser = argparse.ArgumentParser(
+        description='Update Account Group values for accounts based on CSV files',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=__doc__
+    )
+    
+    # Add authentication arguments
+    add_auth_arguments(parser)
+    
+    # Add script-specific arguments
+    parser.add_argument(
+        '--delay',
+        type=float,
+        default=0.5,
+        help='Delay between API requests in seconds (default: 0.5)'
+    )
+    
+    parser.add_argument(
+        '--skip-dependency-check',
+        action='store_true',
+        help='Skip the dependency check at startup'
+    )
+    
+    # Handle legacy format (positional API key)
+    sys.argv = parse_legacy_args(sys.argv)
+    
+    args = parser.parse_args()
+    
+    # Check dependencies unless explicitly skipped
+    if not args.skip_dependency_check:
+        from dependency_checker import check_dependencies
+        if not check_dependencies(include_optional=True, silent=False):
+            print('\n❌ Cannot proceed without required dependencies.')
+            print('   Run with --skip-dependency-check to bypass this check (not recommended).')
+            sys.exit(1)
+    
+    # Setup authentication
+    api_key, opentoken_headers = setup_authentication(args)
+    
+    delay = args.delay
 
     files = []
     for file in os.listdir('./'):
@@ -81,8 +124,8 @@ def main():
     
     print(f'Found {len(updates)} accounts in csv files.')
 
-    account_groups = get_ag_list(api_key)  #getting AG names and IDs
-    ag_entries = get_ag_entries(api_key, account_groups) #get list of current AG entries
+    account_groups = get_ag_list(api_key, opentoken_headers)  #getting AG names and IDs
+    ag_entries = get_ag_entries(api_key, opentoken_headers, account_groups) #get list of current AG entries
 
     ag_lookup = {}
     for ag in account_groups:
@@ -101,7 +144,7 @@ def main():
             print(f'\t{ag}')
         return
 
-    account_mapping = get_acct_mapping(api_key) #get list of accounts in Cldy
+    account_mapping = get_acct_mapping(api_key, opentoken_headers) #get list of accounts in Cldy
     # account_mapping acts as a dual lookup. ID to name and name to ID
 
     save_ag_entries_backup(ag_entries, ag_lookup) #save current AG entries to a backup file
@@ -121,7 +164,7 @@ def main():
             if not value:
                 try:
                     current_entry = ag_entries[acc_id][ag_name]
-                    delete_ag_entry(api_key, current_entry)
+                    delete_ag_entry(api_key, opentoken_headers, current_entry)
                     print(f'Deleting entry {current_entry['value']} for {acc_id} {ag_name}')
                     deleted_count += 1
                 except KeyError:
@@ -156,7 +199,7 @@ def main():
 
     print('')
     print(f'Updating {len(update_data)}')
-    update_ag_entries(api_key, update_data)
+    update_ag_entries(api_key, opentoken_headers, update_data)
     print('')
     print(f'Of {len(updates)} accounts in csv:')
     print(f'Found {len(account_log["found"])}')
@@ -207,10 +250,10 @@ def find_encoding(csv_file):
 
     return csv_encoding
 
-def get_vendors(api_key):
+def get_vendors(api_key, opentoken_headers={}):
     # Get the list of vendors from the API
     end_point = f'/vendors'
-    response = cldy.get(end_point, api_key)
+    response = cldy.get(end_point, api_key=api_key, opentoken_headers=opentoken_headers)
     if 'error' in response:
         print(f'Error getting vendors: {response["error"]}')
         return []
@@ -222,13 +265,13 @@ def get_vendors(api_key):
     return vendors
 
 
-def get_acct_mapping(api_key, separate_lookups=False):
-    vendors = get_vendors(api_key)
+def get_acct_mapping(api_key, opentoken_headers={}, separate_lookups=False):
+    vendors = get_vendors(api_key, opentoken_headers)
 
     account_mapping = {}
     for vendor in vendors:
         end_point = f'/vendors/{vendor}/accounts?viewId=0'
-        results = cldy.get(api_key=api_key, end_point=end_point)['result']
+        results = cldy.get(api_key=api_key, end_point=end_point, opentoken_headers=opentoken_headers)['result']
         if results:
             for result in results:
                 account_id = result['vendorAccountId']
@@ -243,18 +286,18 @@ def get_acct_mapping(api_key, separate_lookups=False):
 
     return account_mapping
 
-def get_ag_list(api_key):
+def get_ag_list(api_key, opentoken_headers={}):
     ag_endpoint = f'/account_groups/?auth_token={api_key}'
     timer = time()
-    ag_response = cldy.get(ag_endpoint, api_key)
+    ag_response = cldy.get(ag_endpoint, api_key=api_key, opentoken_headers=opentoken_headers)
     print(f'Got account group dimension list in {time() - timer} seconds. {len(ag_response)} found.')
     return ag_response
 
-def get_ag_entries(api_key, ag_response):
+def get_ag_entries(api_key, opentoken_headers, ag_response):
     ag_entries_endpoint = f'/account_group_entries'
 
     timer = time()
-    ag_entries_response = cldy.get(ag_entries_endpoint, api_key)
+    ag_entries_response = cldy.get(ag_entries_endpoint, api_key=api_key, opentoken_headers=opentoken_headers)
     print(f'Got account group entries in {time() - timer} seconds. {len(ag_entries_response)} entries found.')
 
     account_groups = {}
@@ -310,7 +353,7 @@ def save_ag_entries_backup(ag_entries, ag_lookup):
     
 
 
-def update_ag_entries(api_key, update_data, delay=0.5):
+def update_ag_entries(api_key, opentoken_headers, update_data, delay=0.5):
     #Updates AG entries based on changes found when comparing CSV to current Cldy information
     end_point = f'/account_group_entries/'
     # set min time between requests to avoid rate limiting
@@ -319,14 +362,14 @@ def update_ag_entries(api_key, update_data, delay=0.5):
         if data['id']:
             ep = f'{end_point}{data["id"]}'
             payload = {'value': data['value']}
-            result = cldy.put(ep, api_key, payload)
+            result = cldy.put(ep, api_key=api_key, data=payload, opentoken_headers=opentoken_headers)
             if 'error' not in result:
                 print(f'Updating value {data}')
                 print(result)
             else:
                 print(result)
         else:
-            result = cldy.post(end_point, api_key, data)
+            result = cldy.post(end_point, api_key=api_key, data=data, opentoken_headers=opentoken_headers)
             if 'error' not in result:
                 print(f'New value {data}')
                 print(result)
@@ -342,11 +385,11 @@ def update_ag_entries(api_key, update_data, delay=0.5):
 
     return
 
-def delete_ag_entry(api_key, entry):
+def delete_ag_entry(api_key, opentoken_headers, entry):
     entry_id = entry['id']
     #Deletes AG entry based on ID
     end_point = f'/account_group_entries/{entry_id}'
-    result = cldy.delete(end_point, api_key)
+    result = cldy.delete(end_point, api_key=api_key, opentoken_headers=opentoken_headers)
     if 'error' not in result:
         return True
 

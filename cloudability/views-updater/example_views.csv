@@ -1,0 +1,7 @@
+View Name,Shared With Org,Dimension,Comparator,Value1,Value2,Value3
+Dev Environment,true,tag1,=@,dev,staging,nonprod
+Dev Environment,true,vendor_identifier,!=,123412341234
+Prod Environment,false,category10,==,prod,production
+Prod Environment,false,group_name5,==,thing1,thing2
+Test View,true,tag2,=@,test,qa
+Test View,false,service_name,==,api-service,web-service

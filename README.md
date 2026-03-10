@@ -33,45 +33,187 @@ These tools are primarily intended to be examples of the Cloudability and Apptio
 Before using these tools, ensure you have:
 
 - **Python 3.x** installed on your system
-- **Cloudability API Key** (see [Getting Your API Key](#getting-your-api-key))
+- **Authentication credentials** - Choose one:
+  - **Cloudability API Key** (see [Getting Your API Key](#getting-your-api-key)), OR
+  - **Frontdoor Public/Private Keys** (see [Frontdoor Authentication](#frontdoor-authentication))
 - **Command-line/Terminal access**
 - Basic understanding of CSV file formats
 
 ## Installation
 
-### 1. Install the Apptio Library
+### Quick Start (Recommended)
 
-These tools require the [Apptio Tools Library](https://github.com/ibm/apptio-tools-lib). Install it using pip:
+1. **Clone this repository:**
+   ```bash
+   git clone https://github.com/IBM/Apptio-Tools.git
+   cd Apptio-Tools
+   ```
 
+2. **Install all dependencies at once:**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. **Set up your credentials** (optional but recommended):
+   ```bash
+   cp .env.example .env
+   # Edit .env with your API keys
+   ```
+
+4. **Run any script** - dependencies will be automatically checked!
+
+### Automatic Dependency Checking
+
+**New Feature!** All scripts now automatically check for missing dependencies when you run them.
+
+- ✅ **Detects missing packages** before the script runs
+- 📝 **Shows clear installation instructions** with multiple options
+- 💡 **Prompts to install** with your permission (never automatic)
+- 🪟 **Checks Windows PowerShell policies** (informational only)
+
+**Example output when dependencies are missing:**
+```
+⚠️  DEPENDENCY CHECK
+======================================================================
+❌ REQUIRED packages are missing:
+
+  📦 charset-normalizer
+     Purpose: Character encoding detection for CSV files
+     Used by: Account Group Updater, Views Updater
+
+📝 INSTALLATION OPTIONS:
+======================================================================
+
+✅ RECOMMENDED: Install all dependencies at once
+   pip install -r requirements.txt
+
+❓ Would you like to install the missing dependencies now? (yes/no):
+```
+
+**To skip the check** (not recommended):
 ```bash
+python script_name.py --skip-dependency-check [other arguments]
+```
+
+### Manual Installation
+
+If you prefer to install dependencies manually:
+
+**Option 1: Install from requirements.txt**
+```bash
+pip install -r requirements.txt
+```
+
+**Option 2: Install individual packages**
+```bash
+pip install charset-normalizer requests
 pip install git+https://github.com/ibm/apptio-tools-lib.git
 ```
 
-### 2. Install Additional Dependencies
-
-Some tools require additional Python packages:
-
+**Optional but recommended:**
 ```bash
-pip install charset-normalizer requests
+pip install python-dotenv  # For automatic .env file loading
 ```
 
-### 3. Clone This Repository
+For detailed troubleshooting and advanced setup options, see [DEPENDENCY_SETUP.md](DEPENDENCY_SETUP.md).
 
-```bash
-git clone https://github.com/IBM/Apptio-Tools.git
-cd Apptio-Tools
-```
+## Authentication
 
-## Getting Your API Key
+These tools support two authentication methods. Choose the one that works best for your organization.
 
-To use these tools, you'll need a Cloudability API key:
+### Option 1: Cloudability API Key
+
+To use Cloudability API key authentication:
 
 1. Log in to your Cloudability account
 2. Navigate to **Person Icon** → **Manage Profile** → **Preferences Tab**
 3. Generate a new API key or use an existing one
-4. Copy the API key - you'll use it as a command-line argument
+4. Copy the API key - you'll use it as a command-line argument or environment variable
 
-**Security Note:** Never commit your API key to version control. Keep it secure and treat it like a password.
+### Option 2: Frontdoor Authentication
+
+To use Frontdoor public/private key authentication:
+
+1. Log in to your Apptio platform
+2. Navigate to **Settings** → **API Keys**
+3. Generate a new API key pair (public and private keys)
+4. Note your domain name and environment name (usually 'main')
+5. Optionally note your region (US, EU, APAC, ME)
+
+For detailed setup instructions, see the [IBM Apptio Platform Documentation](https://www.ibm.com/docs/en/apptio-platform/access-administration/saas?topic=apis-authentication-via-api-keys).
+
+### Security Best Practices
+
+- **Never commit credentials to version control**
+- Use environment variables for production deployments
+- Rotate keys regularly
+- Use separate keys for different environments (dev, staging, production)
+- Keep credentials secure and treat them like passwords
+
+### Environment Variables (Recommended)
+
+For better security, use environment variables instead of command-line arguments.
+
+#### Option A: Using .env File (Most Convenient)
+
+Create a `.env` file in your script directory:
+
+```bash
+# Option 1: Cloudability API Key
+CLOUDABILITY_API_KEY=your_api_key
+
+# Option 2: Frontdoor Authentication
+APPTIO_PUBLIC_KEY=your_public_key
+APPTIO_PRIVATE_KEY=your_private_key
+APPTIO_DOMAIN=your_domain
+APPTIO_ENVIRONMENT_NAME=main  # Optional, defaults to "main"
+APPTIO_REGION=  # Optional: "", "eu", "au", "me"
+```
+
+Install `python-dotenv` for automatic loading:
+```bash
+pip install python-dotenv
+```
+
+Then run scripts - the `.env` file will be loaded automatically:
+```bash
+python update_ag_entries.py
+```
+
+#### Option B: System Environment Variables
+
+Set environment variables in your shell:
+
+```bash
+# Linux/Mac
+export CLOUDABILITY_API_KEY=your_api_key
+# OR
+export APPTIO_PUBLIC_KEY=your_public_key
+export APPTIO_PRIVATE_KEY=your_private_key
+export APPTIO_DOMAIN=your_domain
+
+# Windows PowerShell (Current Session Only)
+$env:CLOUDABILITY_API_KEY="your_api_key"
+# OR
+$env:APPTIO_PUBLIC_KEY="your_public_key"
+$env:APPTIO_PRIVATE_KEY="your_private_key"
+$env:APPTIO_DOMAIN="your_domain"
+
+# Windows PowerShell (Persistent - Survives Session Restarts)
+[System.Environment]::SetEnvironmentVariable('CLOUDABILITY_API_KEY', 'your_api_key', 'User')
+# OR
+[System.Environment]::SetEnvironmentVariable('APPTIO_PUBLIC_KEY', 'your_public_key', 'User')
+[System.Environment]::SetEnvironmentVariable('APPTIO_PRIVATE_KEY', 'your_private_key', 'User')
+[System.Environment]::SetEnvironmentVariable('APPTIO_DOMAIN', 'your_domain', 'User')
+# Note: You'll need to restart PowerShell to see persistent variables
+```
+
+Then run scripts without passing credentials:
+```bash
+python update_ag_entries.py
+```
+
+**Note:** The scripts work with system environment variables regardless of whether `python-dotenv` is installed. The `python-dotenv` package simply provides convenience by automatically loading `.env` files.
 
 ## Tools
 
@@ -90,14 +232,44 @@ To use these tools, you'll need a Cloudability API key:
 
 #### Usage
 
+**With Cloudability API Key:**
 ```bash
 cd cloudability/account-group-updater
-python update_ag_entries.py <api_key> [-delay <seconds>]
+python update_ag_entries.py --api-key YOUR_API_KEY [--delay SECONDS]
+```
+
+**With Frontdoor Authentication:**
+```bash
+cd cloudability/account-group-updater
+python update_ag_entries.py \
+  --frontdoor-public YOUR_PUBLIC_KEY \
+  --frontdoor-private YOUR_PRIVATE_KEY \
+  --domain YOUR_DOMAIN \
+  [--environment-name ENV_NAME] \
+  [--region REGION] \
+  [--delay SECONDS]
+```
+
+**With Environment Variables:**
+```bash
+# Set credentials (see Authentication section above)
+cd cloudability/account-group-updater
+python update_ag_entries.py [--delay SECONDS]
+```
+
+**Legacy Format (Still Supported):**
+```bash
+python update_ag_entries.py YOUR_API_KEY [--delay SECONDS]
 ```
 
 **Parameters:**
-- `<api_key>` (required): Your Cloudability API key
-- `-delay <seconds>` (optional): Delay between API calls to avoid rate limiting (default: 0.5 seconds)
+- `--api-key` : Your Cloudability API key
+- `--frontdoor-public` : Frontdoor public key
+- `--frontdoor-private` : Frontdoor private key
+- `--domain` : Your domain name (for frontdoor auth)
+- `--environment-name` : Environment name (optional, defaults to "main")
+- `--region` : Region ("", "eu", "au", "me" - optional)
+- `--delay` : Delay between API calls in seconds (default: 0.5)
 
 #### CSV Format
 
@@ -150,15 +322,35 @@ vendor_account_identifier,AG_ACCOUNT_OWNER,AG_ENVIRONMENT,AG_COST_CENTER
 
 #### Usage
 
+**With Cloudability API Key:**
 ```bash
 cd cloudability/business-mapping-update
-python update_mappings_from_csv.py <api_key> [-test] [-debug]
+python update_mappings_from_csv.py --api-key YOUR_API_KEY [--test] [--debug]
+```
+
+**With Frontdoor Authentication:**
+```bash
+cd cloudability/business-mapping-update
+python update_mappings_from_csv.py \
+  --frontdoor-public YOUR_PUBLIC_KEY \
+  --frontdoor-private YOUR_PRIVATE_KEY \
+  --domain YOUR_DOMAIN \
+  [--test] [--debug]
+```
+
+**With Environment Variables:**
+```bash
+cd cloudability/business-mapping-update
+python update_mappings_from_csv.py [--test] [--debug]
 ```
 
 **Parameters:**
-- `<api_key>` (required): Your Cloudability API key
-- `-test` (optional): Use test mappings instead of CSV files
-- `-debug` (optional): Generate JSON files without updating Cloudability
+- `--api-key` : Your Cloudability API key
+- `--frontdoor-public` : Frontdoor public key
+- `--frontdoor-private` : Frontdoor private key
+- `--domain` : Your domain name (for frontdoor auth)
+- `--test` : Use test mappings instead of CSV files
+- `--debug` : Generate JSON files without updating Cloudability
 
 #### CSV Format
 
@@ -218,15 +410,36 @@ This creates:
 
 #### Usage
 
+**With Cloudability API Key:**
 ```bash
 cd cloudability/update-hierarchical-bm
-python update_hbm.py <api_key> [-region <region>] [-name <name>]
+python update_hbm.py --api-key YOUR_API_KEY [--name HBM_NAME]
+```
+
+**With Frontdoor Authentication:**
+```bash
+cd cloudability/update-hierarchical-bm
+python update_hbm.py \
+  --frontdoor-public YOUR_PUBLIC_KEY \
+  --frontdoor-private YOUR_PRIVATE_KEY \
+  --domain YOUR_DOMAIN \
+  [--name HBM_NAME] \
+  [--region REGION]
+```
+
+**With Environment Variables:**
+```bash
+cd cloudability/update-hierarchical-bm
+python update_hbm.py [--name HBM_NAME]
 ```
 
 **Parameters:**
-- `<api_key>` (required): Your Cloudability API key
-- `-region <region>` (optional): Cloudability region (if not default)
-- `-name <name>` (optional): Name for the HBM (defaults to CSV filename)
+- `--api-key` : Your Cloudability API key
+- `--frontdoor-public` : Frontdoor public key
+- `--frontdoor-private` : Frontdoor private key
+- `--domain` : Your domain name (for frontdoor auth)
+- `--name` : Name for the HBM (defaults to CSV filename)
+- `--region` : Region ("", "eu", "au", "me")
 
 #### CSV Format
 
@@ -274,28 +487,59 @@ This creates a 3-level hierarchy:
 #### Features
 - Creates new views or updates existing ones
 - Supports multiple filters per view
-- Preserves sharing settings when updating
+- Configure organization sharing for new views
+- Preserves sharing settings when updating existing views
 - Handles all Cloudability filter comparators
 - Can process multiple CSV files
 
 #### Usage
 
+**With Cloudability API Key:**
 ```bash
 cd cloudability/views-updater
-python views_updater.py <api_key> [-region <region>]
+python views_updater.py --api-key YOUR_API_KEY [--region REGION]
+```
+
+**With Frontdoor Authentication:**
+```bash
+cd cloudability/views-updater
+python views_updater.py \
+  --frontdoor-public YOUR_PUBLIC_KEY \
+  --frontdoor-private YOUR_PRIVATE_KEY \
+  --domain YOUR_DOMAIN \
+  [--region REGION]
+```
+
+**With Environment Variables:**
+```bash
+cd cloudability/views-updater
+python views_updater.py
 ```
 
 **Parameters:**
-- `<api_key>` (required): Your Cloudability API key
-- `-region <region>` (optional): Cloudability region (if not default)
+- `--api-key` : Your Cloudability API key
+- `--frontdoor-public` : Frontdoor public key
+- `--frontdoor-private` : Frontdoor private key
+- `--domain` : Your domain name (for frontdoor auth)
+- `--region` : Region ("", "eu", "au", "me")
 
 #### CSV Format
 
 **Columns:**
 1. **View Name** - Name of the view
-2. **Dimension** - The field to filter on
-3. **Comparator** - Filter operator (see below)
-4. **Value1, Value2, ...** - Values to filter (multiple columns allowed)
+2. **Shared With Org** - Share with organization: `true` or `false` (for new views only)
+3. **Dimension** - The field to filter on (must use API names for Business Dimensions and Account Groups)
+4. **Comparator** - Filter operator (see below)
+5. **Value1, Value2, ...** - Values to filter (multiple columns allowed)
+
+**⚠️ IMPORTANT: Use API Names for Dimensions**
+
+When specifying dimensions in the CSV, you must use API names:
+- **Business Dimensions**: Use `categoryX` format (e.g., `category1`, `category10`, `category15`)
+- **Account Groups**: Use `group_nameX` format (e.g., `group_name1`, `group_name5`)
+- **Tags**: Use the API name which is `tagX` where 'X' is the tag dimension index number from the Tags & Labels screen in CLDY (e.g., `tag1`, `tag2`, `tag3`, etc.)
+
+- **Standard dimensions**: Use API names (e.g., `vendor_account_identifier`, `account_identifier`)
 
 **Valid Comparators:**
 - `==` : Equals
@@ -305,21 +549,24 @@ python views_updater.py <api_key> [-region <region>]
 
 **Example CSV:**
 ```csv
-View Name,Dimension,Comparator,Value1,Value2,Value3
-Dev Environment,tag1,=@,dev,staging,nonprod
-Dev Environment,vendor_identifier,!=,123412341234
-Prod Environment,tag1,==,prod,production
-Prod Environment,account_identifier,==,123412341234,432143214321
+View Name,Shared With Org,Dimension,Comparator,Value1,Value2,Value3
+Dev Environment,true,tag1,=@,dev,staging,nonprod
+Dev Environment,true,vendor_identifier,!=,123412341234
+Prod Environment,false,category10,==,prod,production
+Prod Environment,false,group_name5,==,enterprise tenants,MCP
 ```
 
 This creates:
-- **Dev Environment** view with 4 filters
-- **Prod Environment** view with 4 filters
+- **Dev Environment** view (shared with organization) with 4 filters
+- **Prod Environment** view (not shared) with 4 filters
 
 #### Important Notes
 - Multiple rows with the same view name add filters to that view
+- **Shared With Org** only applies when creating NEW views
+  - Accepts: `true`, `false` (case-insensitive)
+  - If multiple rows for same view have different values, the LAST row's value is used
+- Existing views preserve their current sharing settings (CSV value is ignored)
 - Existing views are updated (not replaced) if filters differ
-- Sharing settings are preserved when updating existing views
 - It's easier to use multiple rows than putting all values in one row
 
 #### Example Workflow
@@ -356,13 +603,69 @@ See the [Postman Collection README](cloudability/postman-collection/README.md) f
 
 ## Troubleshooting
 
+### Dependency Issues
+
+For detailed dependency troubleshooting, see [DEPENDENCY_SETUP.md](DEPENDENCY_SETUP.md).
+
+**Quick fixes:**
+
+#### "No module named 'apptio_lib'" or other import errors
+**Solution:** Install dependencies:
+```bash
+pip install -r requirements.txt
+```
+
+Or let the script's automatic dependency checker guide you through installation.
+
+#### "pip: command not found"
+**Solution:** Use python -m pip:
+```bash
+python -m pip install -r requirements.txt
+```
+
+#### Windows PowerShell execution policy errors
+**Solution:** Either:
+1. Run in Command Prompt (cmd.exe) instead of PowerShell
+2. Update policy (as Administrator):
+   ```powershell
+   Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+   ```
+
 ### Common Issues
 
-#### "Missing api key. Quitting"
-**Solution:** Ensure you're passing your API key as the first command-line argument:
+#### "No authentication credentials provided"
+**Solution:** Provide authentication using one of these methods:
 ```bash
-python script_name.py YOUR_API_KEY
+# Option 1: Cloudability API Key
+python script_name.py --api-key YOUR_API_KEY
+
+# Option 2: Frontdoor Authentication
+python script_name.py \
+  --frontdoor-public YOUR_PUBLIC_KEY \
+  --frontdoor-private YOUR_PRIVATE_KEY \
+  --domain YOUR_DOMAIN
+
+# Option 3: Environment Variables
+export CLOUDABILITY_API_KEY=your_key
+# OR
+export APPTIO_PUBLIC_KEY=your_public_key
+export APPTIO_PRIVATE_KEY=your_private_key
+export APPTIO_DOMAIN=your_domain
+python script_name.py
 ```
+
+#### "Failed to get environment ID"
+**Solution:**
+- Verify your domain name is correct (just the name, not the full URL)
+- Check if you need a custom environment name: `--environment-name production`
+- Verify the region matches your Apptio instance: `--region eu`
+- Ensure your frontdoor keys have the necessary permissions
+
+#### "Failed to obtain authentication token"
+**Solution:**
+- Verify your frontdoor public and private keys are correct
+- Check if the keys have been deactivated in the Apptio platform
+- Ensure you're using the correct region
 
 #### "No csv files found in current directory"
 **Solution:** 
@@ -377,7 +680,7 @@ python script_name.py YOUR_API_KEY
 - Process smaller batches of data
 
 #### "Account Groups not found"
-**Solution:** 
+**Solution:**
 - Verify the account group names in your CSV exactly match those in Cloudability
 - Check for extra spaces or typos
 - The script will list all valid account groups when this error occurs

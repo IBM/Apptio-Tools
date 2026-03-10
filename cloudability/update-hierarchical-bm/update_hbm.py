@@ -7,8 +7,11 @@ SPDX-License-Identifier: Apache-2.0
 """
 Example CSV and resulting JSON payload for a Hierarchical Business Mapping (HBM) in Cloudability.
 This is the same format of the CSV files used for importing HBM data in the UI.
+
+⚠️ IMPORTANT: The first column must be the exact name of an existing Business Mapping in Cloudability.
 * Note * We assume that the default value is (not set) (aka null) for each entry.
-Also note that the first column must exactly match the name of an existing business mapping.
+
+Example CSV:
 Application, L2, L3
 A, LA, LC
 B, LA, LC
@@ -79,7 +82,18 @@ import os
 import csv
 import sys
 import json
-from apptio_lib import cloudability as cldy
+import argparse
+
+# Add parent directory to path to import auth_helper
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from auth_helper import setup_authentication, add_auth_arguments, parse_legacy_args, get_region_from_args
+
+# Conditional imports - will be checked by dependency_checker before use
+try:
+    from apptio_lib import cloudability as cldy
+except ImportError:
+    # Dependencies will be checked by dependency_checker in main()
+    pass
 
 def main():
 
@@ -88,45 +102,69 @@ def main():
     # It reads CSV files in the current directory, where each file corresponds to one HBM
     # The name of the file should exactly match the name of the HBM in Cloudability.
     # The format of the CSV should match the template from Cloudability.
+    #
+    # ⚠️ IMPORTANT: The first column in the CSV must be the exact name of an existing
+    # Business Mapping in Cloudability (not the API name like 'categoryX').
+    #
+    # Supports both Cloudability API key and Frontdoor public/private key authentication.
     ####
 
-    api_key = ''
-    if len(sys.argv) > 1:
-        api_key = sys.argv[1]
-    else:
-       print('Missing api key. Quitting')
-
-    region = ''
-    name = ''
-    if len(sys.argv) > 2:
-        for arg in sys.argv[2:]:
-            if arg.endswith('-region'):
-                region = sys.argv[sys.argv.index(arg) + 1]
-
-            elif arg.endswith('-name'):
-                name = sys.argv[sys.argv.index(arg) + 1]
-        if not region and not name:
-            print('Unknown arguments found. Quitting')
-            print('Valid arguments are:')
-            print(' -region <region>')
-            print(' -name <name>')
-            return
+    # Parse arguments
+    parser = argparse.ArgumentParser(
+        description='Update Hierarchical Business Mappings from CSV files',
+        formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    
+    # Add authentication arguments
+    add_auth_arguments(parser)
+    
+    # Add script-specific arguments
+    parser.add_argument(
+        '--name',
+        dest='hbm_name',
+        help='Name of the HBM to update (defaults to CSV filename)'
+    )
+    
+    parser.add_argument(
+        '--skip-dependency-check',
+        action='store_true',
+        help='Skip the dependency check at startup'
+    )
+    
+    # Handle legacy format (positional API key)
+    sys.argv = parse_legacy_args(sys.argv)
+    
+    args = parser.parse_args()
+    
+    # Check dependencies unless explicitly skipped
+    if not args.skip_dependency_check:
+        from dependency_checker import check_dependencies
+        if not check_dependencies(include_optional=True, silent=False):
+            print('\n❌ Cannot proceed without required dependencies.')
+            print('   Run with --skip-dependency-check to bypass this check (not recommended).')
+            sys.exit(1)
+    
+    # Setup authentication
+    api_key, opentoken_headers = setup_authentication(args)
+    
+    region = get_region_from_args(args)
+    name = getattr(args, 'hbm_name', '')
 
     current_bms = {}
-    all_bms_response = cldy.get('/business-mappings', api_key=api_key, region=region)
+    all_bms_response = cldy.get('/business-mappings', api_key=api_key, opentoken_headers=opentoken_headers, region=region)
     if isinstance(all_bms_response, dict):
         for bm in all_bms_response.get('result', []):
             current_bms[bm['name']] = bm
 
     current_hbms = {}
     hbm_ep = '/internal/hierarchical-business-mappings'
-    current_result = cldy.get(hbm_ep, api_key=api_key, region=region)
+    current_result = cldy.get(hbm_ep, api_key=api_key, opentoken_headers=opentoken_headers, region=region)
     if isinstance(current_result, dict):
         org_id = current_result.get('orgId', None)
         current_result = current_result['result']['mappings']
         if not org_id:
             # The HBM endpoint should always return the orgId, but juuust in case:
-            org_settings = cldy.get('/internal/organization/settings', api_key=api_key, region=region)
+            org_settings = cldy.get('/internal/organization/settings', api_key=api_key, opentoken_headers=opentoken_headers, region=region)
             org_id = org_settings['id']
         for hbm in current_result:
             current_hbms[hbm['name']] = hbm
@@ -193,10 +231,10 @@ def main():
             "hierarchicalBusinessMappings": sub_mappings,
             "statementValues": statements
         }
-        if current_hbm_index >= 0:
+        if current_hbm_index is not None and current_hbm_index >= 0:
             new_mapping['index'] = current_hbm_index
         print(f'Creating or updating HBM: {name}')
-        response = cldy.post('/internal/hierarchical-business-mappings', api_key=api_key, data=new_mapping)
+        response = cldy.post('/internal/hierarchical-business-mappings', api_key=api_key, data=new_mapping, opentoken_headers=opentoken_headers)
         if isinstance(response, dict) and 'result' in response:
             print(f'Successfully created or updated HBM: {name}')
         else:
