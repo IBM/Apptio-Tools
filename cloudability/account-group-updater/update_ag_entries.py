@@ -7,6 +7,7 @@ SPDX-License-Identifier: Apache-2.0
 import os
 import csv
 import sys
+import argparse
 from time import time, sleep
 from charset_normalizer import from_path
 from apptio_lib import cloudability as cldy
@@ -37,13 +38,37 @@ python update_ag_entries.py <api_key> [-delay <seconds>]
 '''
 
 def main():
-    if len(sys.argv) == 1:
-        print('Missing api key. Quitting')
-        return
-    api_key = sys.argv[1]
+    parser = argparse.ArgumentParser(description="Account Group Updater")
+    
+    # Define your arguments
+    parser.add_argument("--cldy-key", help="Cloudability API Key")
+    parser.add_argument("--opentoken", help="OpenToken")
+    parser.add_argument("--public", help="Public Key")
+    parser.add_argument("--private", help="Private Key")
 
-    # opentoken_headers = make_opentoken_headers()
+    args = parser.parse_args()
+
+    # Validation logic
+    has_keys = args.cldy_key or args.token or (args.public and args.private)
+    
+    if not has_keys:
+        parser.error("Missing credentials. Provide cldy_key, token, or BOTH public and private keys.")
+
+    # Access them easily:
+    api_key = args.cldy_key
+    token = args.opentoken
+
+    public = args.public
+    private = args.private
+
     opentoken_headers = {}
+    if (public and private):
+        token = apptio.get_auth(public=public, private=private)
+    if token:
+        opentoken_headers = apptio.make_opentoken_headers()
+
+    if not (api_key or opentoken_headers):
+        print('Could not genrate opentoken headers. Please check credentials.')
 
     delay = 0.5
     if '-delay' in sys.argv:
@@ -81,8 +106,8 @@ def main():
     
     print(f'Found {len(updates)} accounts in csv files.')
 
-    account_groups = get_ag_list(api_key)  #getting AG names and IDs
-    ag_entries = get_ag_entries(api_key, account_groups) #get list of current AG entries
+    account_groups = get_ag_list(api_key, opentoken_headers=opentoken_headers)  #getting AG names and IDs
+    ag_entries = get_ag_entries(api_key, account_groups, opentoken_headers=opentoken_headers) #get list of current AG entries
 
     ag_lookup = {}
     for ag in account_groups:
@@ -101,10 +126,10 @@ def main():
             print(f'\t{ag}')
         return
 
-    account_mapping = get_acct_mapping(api_key) #get list of accounts in Cldy
+    account_mapping = get_acct_mapping(api_key, opentoken_headers=opentoken_headers) #get list of accounts in Cldy
     # account_mapping acts as a dual lookup. ID to name and name to ID
 
-    save_ag_entries_backup(ag_entries, ag_lookup) #save current AG entries to a backup file
+    save_ag_entries_backup(ag_entries, ag_lookup) # save current AG entries to a backup file
 
     update_data = []
     entry_count = 0
@@ -156,14 +181,14 @@ def main():
 
     print('')
     print(f'Updating {len(update_data)}')
-    update_ag_entries(api_key, update_data)
+    update_ag_entries(api_key, update_data, opentoken_headers=opentoken_headers)
     print('')
     print(f'Of {len(updates)} accounts in csv:')
     print(f'Found {len(account_log["found"])}')
     print(f'Not found {len(account_log["not_found"])}')
     return
 
-def parse_csv(csv_files): #find csv, find encoding, pass to parse function
+def parse_csv(csv_files): # find csv, find encoding, pass to parse function
     account_ag_values = {}
     for csv_file in csv_files:
         csv_encoding = find_encoding(csv_file)
@@ -178,7 +203,7 @@ def parse_csv(csv_files): #find csv, find encoding, pass to parse function
         
         print(f'CSV with unknown encoding. {csv_file}')
 
-def parse_ag_updates(records, account_ag_values={}): #parsing the values in the CSV file
+def parse_ag_updates(records, account_ag_values={}): # parsing the values in the CSV file
     acct_id_dims = ['Account Number', 'vendor_account_identifier', 'account_identifier']
 
     account_dim = None
@@ -207,10 +232,10 @@ def find_encoding(csv_file):
 
     return csv_encoding
 
-def get_vendors(api_key):
+def get_vendors(api_key='', , opentoken_headers={}):
     # Get the list of vendors from the API
     end_point = f'/vendors'
-    response = cldy.get(end_point, api_key)
+    response = cldy.get(end_point, api_key=api_key, opentoken_headers=opentoken_headers)
     if 'error' in response:
         print(f'Error getting vendors: {response["error"]}')
         return []
@@ -222,7 +247,7 @@ def get_vendors(api_key):
     return vendors
 
 
-def get_acct_mapping(api_key, separate_lookups=False):
+def get_acct_mapping(api_key, separate_lookups=False, opentoken_headers={}):
     vendors = get_vendors(api_key)
 
     account_mapping = {}
@@ -243,18 +268,18 @@ def get_acct_mapping(api_key, separate_lookups=False):
 
     return account_mapping
 
-def get_ag_list(api_key):
+def get_ag_list(api_key, opentoken_headers={}):
     ag_endpoint = f'/account_groups/?auth_token={api_key}'
     timer = time()
-    ag_response = cldy.get(ag_endpoint, api_key)
+    ag_response = cldy.get(ag_endpoint, api_key, opentoken_headers=opentoken_headers)
     print(f'Got account group dimension list in {time() - timer} seconds. {len(ag_response)} found.')
     return ag_response
 
-def get_ag_entries(api_key, ag_response):
+def get_ag_entries(api_key, ag_response, opentoken_headers={}):
     ag_entries_endpoint = f'/account_group_entries'
 
     timer = time()
-    ag_entries_response = cldy.get(ag_entries_endpoint, api_key)
+    ag_entries_response = cldy.get(ag_entries_endpoint, api_key, opentoken_headers=opentoken_headers)
     print(f'Got account group entries in {time() - timer} seconds. {len(ag_entries_response)} entries found.')
 
     account_groups = {}
@@ -310,7 +335,7 @@ def save_ag_entries_backup(ag_entries, ag_lookup):
     
 
 
-def update_ag_entries(api_key, update_data, delay=0.5):
+def update_ag_entries(api_key, update_data, delay=0.5, opentoken_headers={}):
     #Updates AG entries based on changes found when comparing CSV to current Cldy information
     end_point = f'/account_group_entries/'
     # set min time between requests to avoid rate limiting
@@ -319,14 +344,14 @@ def update_ag_entries(api_key, update_data, delay=0.5):
         if data['id']:
             ep = f'{end_point}{data["id"]}'
             payload = {'value': data['value']}
-            result = cldy.put(ep, api_key, payload)
+            result = cldy.put(ep, api_key, payload, opentoken_headers=opentoken_headers)
             if 'error' not in result:
                 print(f'Updating value {data}')
                 print(result)
             else:
                 print(result)
         else:
-            result = cldy.post(end_point, api_key, data)
+            result = cldy.post(end_point, api_key, data, opentoken_headers=opentoken_headers)
             if 'error' not in result:
                 print(f'New value {data}')
                 print(result)
@@ -342,11 +367,11 @@ def update_ag_entries(api_key, update_data, delay=0.5):
 
     return
 
-def delete_ag_entry(api_key, entry):
+def delete_ag_entry(api_key, entry, opentoken_headers={}):
     entry_id = entry['id']
     #Deletes AG entry based on ID
     end_point = f'/account_group_entries/{entry_id}'
-    result = cldy.delete(end_point, api_key)
+    result = cldy.delete(end_point, api_key, opentoken_headers=opentoken_headers)
     if 'error' not in result:
         return True
 
