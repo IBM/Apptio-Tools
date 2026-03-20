@@ -1,493 +1,365 @@
-# Apptio-Tools
+# Turbonomic Group Creator
 
-Collection of Apptio and Cloudability scripts and tools for automating common tasks via API.
+Automate the creation and updating of dynamic groups in Turbonomic using CSV file input. This script supports multiple entity types, flexible filtering criteria, and multiple criteria per group based on the official Turbonomic API v3.
 
-## Table of Contents
+## Features
 
-- [Overview](#overview)
-- [Prerequisites](#prerequisites)
-- [Installation](#installation)
-- [Getting Your API Key](#getting-your-api-key)
-- [Tools](#tools)
-  - [Account Group Updater](#1-account-group-updater)
-  - [Business Mapping Updater](#2-business-mapping-updater)
-  - [Hierarchical Business Mapping Updater](#3-hierarchical-business-mapping-updater)
-  - [Views Updater](#4-views-updater)
-- [Postman Collections](#postman-collections)
-- [Troubleshooting](#troubleshooting)
-- [Best Practices](#best-practices)
-- [Contributing](#contributing)
-- [Disclaimer](#disclaimer)
+- ✅ **Dynamic Group Creation** - Create groups with regex patterns and tag-based filtering
+- ✅ **Group Updates** - Update existing groups with new criteria
+- ✅ **Multiple Criteria** - Support multiple filter criteria per group with AND/OR logic
+- ✅ **Multiple Entity Types** - Support for VMs, Physical Machines, Namespaces, Pods, and more
+- ✅ **CSV-Based Configuration** - Easy-to-manage group definitions in CSV format
+- ✅ **Secure Password Input** - Prompt for password to avoid exposing credentials
+- ✅ **Dry-Run Mode** - Preview changes before creating groups
+- ✅ **Duplicate Detection** - Automatically skip existing groups
+- ✅ **Error Handling** - Comprehensive error handling and logging
+- ✅ **Backup** - Automatic backup of group configurations
+- ✅ **Progress Tracking** - Real-time progress and summary statistics
 
-## Overview
+## Requirements
 
-These tools are primarily intended to be examples of the Cloudability and Apptio APIs, but are fully functioning! They're great for ad-hoc usage and we hope you'll use them to create your own integrations and automations.
+- Python 3.6 or higher
+- `requests` library
+- `urllib3` library
 
-**What's included:**
-- 4 Python automation tools for bulk operations in Cloudability
-- Postman collections for API exploration
-- Example CSV files for each tool
-
-## Prerequisites
-
-Before using these tools, ensure you have:
-
-- **Python 3.x** installed on your system
-- **Cloudability API Key** (see [Getting Your API Key](#getting-your-api-key))
-- **Command-line/Terminal access**
-- Basic understanding of CSV file formats
-
-## Installation
-
-### 1. Install the Apptio Library
-
-These tools require the [Apptio Tools Library](https://github.com/ibm/apptio-tools-lib). Install it using pip:
-
+Install dependencies:
 ```bash
-pip install git+https://github.com/ibm/apptio-tools-lib.git
+pip install requests urllib3
 ```
 
-### 2. Install Additional Dependencies
+## Quick Start
 
-Some tools require additional Python packages:
+1. **Create a CSV file** with your group configurations (see `groups_example.csv`)
 
+2. **Run the script** (will prompt for password):
 ```bash
-pip install charset-normalizer requests
+python create_groups.py https://your-turbo-instance.com username groups.csv
 ```
 
-### 3. Clone This Repository
+3. **Review the output** to see which groups were created or updated
 
-```bash
-git clone https://github.com/IBM/Apptio-Tools.git
-cd Apptio-Tools
-```
+## CSV File Format
 
-## Getting Your API Key
+The CSV file must contain the following columns:
 
-To use these tools, you'll need a Cloudability API key:
+| Column | Required | Description | Example |
+|--------|----------|-------------|---------|
+| `group_name` | Yes | Display name for the group | "Production VMs" |
+| `group_type` | Yes | Entity type | "VirtualMachine" |
+| `filter_type` | Yes | Filter to apply | "vmsByName" |
+| `exp_type` | No | Comparison operator (auto-selected if empty) | "RXEQ", "EQ", "NEQ", "GT" |
+| `exp_val` | Yes | Value or regex pattern | "prod.*" |
+| `case_sensitive` | No | Case sensitivity (default: false) | "true", "false" |
+| `logical_operator` | No | Logic for multiple criteria (default: AND) | "AND", "OR" |
+| `description` | No | Optional description | "All production VMs" |
 
-1. Log in to your Cloudability account
-2. Navigate to **Person Icon** → **Manage Profile** → **Preferences Tab**
-3. Generate a new API key or use an existing one
-4. Copy the API key - you'll use it as a command-line argument
+### Intelligent Expression Type Selection
 
-**Security Note:** Never commit your API key to version control. Keep it secure and treat it like a password.
+**NEW in v2.0**: The script now automatically selects the correct `exp_type` based on `filter_type` if you leave it empty:
 
-## Tools
+- **Tag-based filters** (e.g., `vmsByTag`, `namespacesByTag`, `businessAccountByTag`) → Auto-selects `EQ`
+- **Name-based filters** (e.g., `vmsByName`, `namespacesByName`) → Auto-selects `RXEQ`
+- **Exact match filters** (e.g., `vmsByDC`, `vmsByClusterName`, `vmsByCloudProvider`) → Auto-selects `EQ`
+- **Numeric filters** (e.g., `pmsByMem`, `vmsByCPU`) → You must specify `GT`, `LT`, `GTE`, or `LTE`
 
-### 1. Account Group Updater
+**Recommendation**: Leave `exp_type` empty in your CSV to use intelligent auto-selection. Only specify it when you need a specific comparison operator.
 
-**Purpose:** Bulk update Account Group values for cloud accounts based on CSV files.
+### Multiple Criteria Per Group
 
-**Location:** `cloudability/account-group-updater/update_ag_entries.py`
+To create a group with multiple filter criteria, use **multiple rows with the same `group_name`**. Each row adds another criterion to the group.
 
-#### Features
-- Updates account group assignments from CSV files
-- Automatically creates backups before making changes
-- Supports multiple CSV files in one run
-- Handles AWS account ID formatting (adds hyphens)
-- Can delete entries by leaving values blank
+- Use `logical_operator` set to `AND` to require all criteria to match (default)
+- Use `logical_operator` set to `OR` to match any criterion
 
-#### Usage
+### Example CSV
 
-```bash
-cd cloudability/account-group-updater
-python update_ag_entries.py <api_key> [-delay <seconds>]
-```
-
-**Parameters:**
-- `<api_key>` (required): Your Cloudability API key
-- `-delay <seconds>` (optional): Delay between API calls to avoid rate limiting (default: 0.5 seconds)
-
-#### CSV Format
-
-The CSV file must be in the same directory as the script. The first column should be one of:
-- `vendor_account_identifier`
-- `account_identifier`
-- `Account Number`
-
-Subsequent columns should be Account Group names (must exist in Cloudability).
-
-**Example CSV:**
 ```csv
-vendor_account_identifier,AG_ACCOUNT_OWNER,AG_ENVIRONMENT,AG_COST_CENTER
-1234-5678-9012,John Doe,Production,Finance
-9876-5432-1098,Jane Smith,Development,Engineering
+group_name,group_type,filter_type,exp_type,exp_val,case_sensitive,logical_operator,description
+Production VMs,VirtualMachine,vmsByName,,prod.*,false,AND,All VMs starting with prod (auto RXEQ)
+High Criticality,VirtualMachine,vmsByTag,,criticality=high,false,AND,High criticality VMs (auto EQ)
+Dev Namespaces,Namespace,namespacesByTag,,environment=dev,false,AND,Development namespaces (auto EQ)
+High Memory PMs,PhysicalMachine,pmsByMem,GT,64,false,AND,PMs with >64GB RAM (must specify GT)
+Azure VMs,VirtualMachine,vmsByCloudProvider,,AZURE,false,AND,Azure VMs (auto EQ)
+Production AWS VMs,VirtualMachine,vmsByName,,prod.*,false,AND,Production VMs on AWS (auto RXEQ)
+Production AWS VMs,VirtualMachine,vmsByTag,,cloud=aws,false,AND,Production VMs on AWS (auto EQ)
+Dev or Test VMs,VirtualMachine,vmsByName,,dev.*,false,OR,Development or test VMs (auto RXEQ)
+Dev or Test VMs,VirtualMachine,vmsByName,,test.*,false,OR,Development or test VMs (auto RXEQ)
 ```
 
-#### Important Notes
-- Account Groups must already exist in Cloudability (they won't be created)
-- Backup files are automatically created in a `backups/` folder
-- Backup files are compatible with this script for easy restoration
-- For large numbers of accounts, you may hit rate limits - use the `-delay` parameter
-- Empty values in the CSV will delete the corresponding account group entry
+**Notes**:
+- Leave `exp_type` empty to use intelligent auto-selection
+- "Production AWS VMs" has two criteria (name AND tag)
+- "Dev or Test VMs" matches either dev OR test names
+- Numeric comparisons (like `pmsByMem`) require explicit `exp_type` (GT, LT, etc.)
 
-#### Example Workflow
+## Supported Entity Types
 
-1. Create a CSV file with your account group updates
-2. Place it in the `cloudability/account-group-updater/` directory
-3. Run the script:
-   ```bash
-   python update_ag_entries.py YOUR_API_KEY
-   ```
-4. Review the output for success/failure messages
-5. Check the `backups/` folder for the backup file
+- `VirtualMachine` - Virtual machines
+- `PhysicalMachine` - Physical servers
+- `Namespace` - Kubernetes namespaces
+- `ContainerPod` - Kubernetes pods
+- `WorkloadController` - Kubernetes controllers
+- `ApplicationComponent` - Application components
+- `VirtualVolume` - Virtual volumes
+- `Storage` - Storage systems
+- `DataStore` - Datastores
+- `DataCenter` - Datacenters
+- `Cluster` - Clusters
+- `Network` - Networks
 
----
+## Filter Types by Entity
 
-### 2. Business Mapping Updater
+### VirtualMachine Filters
+- `vmsByName` - Filter by VM name (regex)
+- `vmsByTag` - Filter by tag (format: "key=value")
+- `vmsByPMName` - Filter by physical machine name
+- `vmsByStorage` - Filter by storage name
+- `vmsByNetwork` - Filter by network name
+- `vmsByDC` - Filter by datacenter
+- `vmsByClusterName` - Filter by cluster name
+- `vmsByState` - Filter by VM state
+- And many more...
 
-**Purpose:** Create and update Business Mappings in Cloudability from CSV files.
+### PhysicalMachine Filters
+- `pmsByName` - Filter by PM name (regex)
+- `pmsByStorage` - Filter by storage name
+- `pmsByNetwork` - Filter by network name
+- `pmsByDC` - Filter by datacenter
+- `pmsByMem` - Filter by memory (numeric)
+- `pmsByNumVms` - Filter by number of VMs
 
-**Location:** `cloudability/business-mapping-update/update_mappings_from_csv.py`
+### Namespace Filters
+- `namespacesByName` - Filter by namespace name (regex)
+- `namespacesByTag` - Filter by tag (format: "key=value")
+- `namespacesByCluster` - Filter by cluster name
 
-#### Features
-- Creates new business mappings or updates existing ones
-- Groups values into single statements automatically
-- Supports multiple business mappings per CSV
-- Debug mode for testing without making changes
-- Detailed error reporting for invalid expressions
+## Expression Types
 
-#### Usage
+The script intelligently auto-selects the correct expression type based on filter type. You can override by specifying `exp_type`:
 
+- `RXEQ` - Regex Equals (auto-selected for name-based filters)
+- `EQ` - Exact Equals (auto-selected for tag and exact match filters)
+- `NEQ` - Not Equals
+- `RXNEQ` - Regex Not Equals
+- `GT` - Greater Than (required for numeric comparisons)
+- `LT` - Less Than (required for numeric comparisons)
+- `GTE` - Greater Than or Equal (required for numeric comparisons)
+- `LTE` - Less Than or Equal (required for numeric comparisons)
+
+**Auto-Selection Rules**:
+- **Tag filters** (`vmsByTag`, `namespacesByTag`, etc.) → `EQ`
+- **Name filters** (`vmsByName`, `namespacesByName`, etc.) → `RXEQ`
+- **Exact match filters** (`vmsByDC`, `vmsByClusterName`, `vmsByCloudProvider`, etc.) → `EQ`
+- **Numeric filters** (`pmsByMem`, `vmsByCPU`, etc.) → Must specify GT/LT/GTE/LTE
+
+**Recommendation**: Leave `exp_type` empty in CSV to use auto-selection. This prevents common errors like using RXEQ for tag filters.
+
+## Usage Examples
+
+### Basic Usage (Secure - Prompts for Password)
 ```bash
-cd cloudability/business-mapping-update
-python update_mappings_from_csv.py <api_key> [-test] [-debug]
+python create_groups.py https://turbo.example.com admin groups.csv
 ```
 
-**Parameters:**
-- `<api_key>` (required): Your Cloudability API key
-- `-test` (optional): Use test mappings instead of CSV files
-- `-debug` (optional): Generate JSON files without updating Cloudability
-
-#### CSV Format
-
-The first column is the **match dimension**, and remaining columns are **business mapping names**.
-
-**Match Dimension Format:**
-- Tags: `TAG['tag_name']`
-- Business Dimensions: `BUSINESS_DIMENSION['dimension_name']`
-- Other dimensions: `DIMENSION['dimension_name']`
-
-**Example CSV:**
-```csv
-TAG['Cost Center'],Mapped Department,Mapped Team
-1234,Finance,Team A
-4321,HR,Team B
-5678,Finance,Team C
-```
-
-This creates:
-- **Mapped Department** with 2 values (Finance, HR)
-- **Mapped Team** with 3 values (Team A, Team B, Team C)
-
-#### Important Notes
-- Business mapping names must exactly match names in Cloudability
-- Only one match dimension per CSV file
-- Values are automatically grouped by the tool
-- Read-only mappings will be skipped
-- Use `-debug` mode to preview changes before applying
-
-#### Example Workflow
-
-1. Create a CSV with your business mapping rules
-2. Place it in the `cloudability/business-mapping-update/` directory
-3. Test first with debug mode:
-   ```bash
-   python update_mappings_from_csv.py YOUR_API_KEY -debug
-   ```
-4. Review the generated JSON files in `Debug Files/`
-5. Run without debug to apply changes:
-   ```bash
-   python update_mappings_from_csv.py YOUR_API_KEY
-   ```
-
----
-
-### 3. Hierarchical Business Mapping Updater
-
-**Purpose:** Create and update Hierarchical Business Mappings (HBM) in Cloudability.
-
-**Location:** `cloudability/update-hierarchical-bm/update_hbm.py`
-
-#### Features
-- Creates or updates hierarchical business mappings
-- Uses the same CSV format as Cloudability's UI import
-- Supports multiple hierarchy levels
-- Automatically finds base business mapping
-
-#### Usage
-
+### With Password as Argument (Less Secure)
 ```bash
-cd cloudability/update-hierarchical-bm
-python update_hbm.py <api_key> [-region <region>] [-name <name>]
+python create_groups.py https://turbo.example.com admin password123 groups.csv
 ```
 
-**Parameters:**
-- `<api_key>` (required): Your Cloudability API key
-- `-region <region>` (optional): Cloudability region (if not default)
-- `-name <name>` (optional): Name for the HBM (defaults to CSV filename)
-
-#### CSV Format
-
-The first column must be the name of an **existing business mapping**. Subsequent columns define the hierarchy levels.
-
-**Example CSV:**
-```csv
-Application,L2,L3
-App-A,Department-X,Team-1
-App-B,Department-X,Team-1
-App-C,Department-Y,Team-2
-App-D,Department-Y,Team-3
-```
-
-This creates a 3-level hierarchy:
-- **Base:** Application (must exist as a business mapping)
-- **Level 2:** L2
-- **Level 3:** L3
-
-#### Important Notes
-- The base business mapping (first column) must already exist in Cloudability
-- CSV filename becomes the HBM name unless `-name` is specified
-- Default value for each level is empty string (can be modified in code)
-- The tool will update existing HBMs with the same name
-
-#### Example Workflow
-
-1. Ensure your base business mapping exists in Cloudability
-2. Create a CSV file named after your desired HBM (e.g., `Cost_Hierarchy.csv`)
-3. Place it in the `cloudability/update-hierarchical-bm/` directory
-4. Run the script:
-   ```bash
-   python update_hbm.py YOUR_API_KEY
-   ```
-5. Verify the hierarchy in Cloudability UI
-
----
-
-### 4. Views Updater
-
-**Purpose:** Mass create and update views (filters) in Cloudability.
-
-**Location:** `cloudability/views-updater/views_updater.py`
-
-#### Features
-- Creates new views or updates existing ones
-- Supports multiple filters per view
-- Preserves sharing settings when updating
-- Handles all Cloudability filter comparators
-- Can process multiple CSV files
-
-#### Usage
-
+### Dry Run (Preview Only)
+Preview what would be created without making changes:
 ```bash
-cd cloudability/views-updater
-python views_updater.py <api_key> [-region <region>]
+python create_groups.py https://turbo.example.com admin groups.csv --dry-run
 ```
 
-**Parameters:**
-- `<api_key>` (required): Your Cloudability API key
-- `-region <region>` (optional): Cloudability region (if not default)
-
-#### CSV Format
-
-**Columns:**
-1. **View Name** - Name of the view
-2. **Dimension** - The field to filter on
-3. **Comparator** - Filter operator (see below)
-4. **Value1, Value2, ...** - Values to filter (multiple columns allowed)
-
-**Valid Comparators:**
-- `==` : Equals
-- `!=` : Not Equals
-- `=@` : Contains
-- `!=@` : Does Not Contain
-
-**Example CSV:**
-```csv
-View Name,Dimension,Comparator,Value1,Value2,Value3
-Dev Environment,tag1,=@,dev,staging,nonprod
-Dev Environment,vendor_identifier,!=,123412341234
-Prod Environment,tag1,==,prod,production
-Prod Environment,account_identifier,==,123412341234,432143214321
+### Update Existing Groups
+Update existing groups with new criteria instead of skipping them:
+```bash
+python create_groups.py https://turbo.example.com admin groups.csv --update
 ```
 
-This creates:
-- **Dev Environment** view with 4 filters
-- **Prod Environment** view with 4 filters
+### Force Creation
+Skip duplicate checking and attempt to create all groups:
+```bash
+python create_groups.py https://turbo.example.com admin groups.csv --force
+```
 
-#### Important Notes
-- Multiple rows with the same view name add filters to that view
-- Existing views are updated (not replaced) if filters differ
-- Sharing settings are preserved when updating existing views
-- It's easier to use multiple rows than putting all values in one row
+### Debug Mode
+Enable detailed debug logging:
+```bash
+python create_groups.py https://turbo.example.com admin groups.csv --debug
+```
 
-#### Example Workflow
+### Combined Options
+```bash
+python create_groups.py https://turbo.example.com admin groups.csv --update --dry-run --debug
+```
 
-1. Create a CSV with your view definitions
-2. Place it in the `cloudability/views-updater/` directory
-3. Run the script:
-   ```bash
-   python views_updater.py YOUR_API_KEY
-   ```
-4. Check Cloudability UI to verify views were created/updated
+## Command-Line Arguments
 
----
+```
+positional arguments:
+  turbo_url             Turbonomic instance URL
+  username              Username for authentication
+  password              Password for authentication (optional - will prompt if not provided)
+  csv_file              Path to CSV file with group configurations
 
-## Postman Collections
+optional arguments:
+  -h, --help            Show help message and exit
+  --dry-run             Preview changes without creating groups
+  --update              Update existing groups instead of skipping them
+  --force               Skip duplicate checking (not recommended with --update)
+  --debug               Enable debug logging
+```
 
-**Location:** `cloudability/postman-collection/`
+## Output
 
-The repository includes Postman collections for exploring the Cloudability API:
+The script provides detailed output including:
 
-- `Cloudability.postman_collection.json.example` - Main API collection
-- `Business Metrics.postman_collection.json` - Business metrics endpoints
+- Authentication status
+- Number of groups parsed from CSV
+- Number of criteria across all groups
+- Progress for each group creation/update
+- Summary statistics:
+  - Total groups in CSV
+  - Successfully created
+  - Successfully updated
+  - Skipped (already exist)
+  - Failed
 
-### Setup
+### Example Output
 
-1. Rename `Cloudability.postman_collection.json.example` to `Cloudability.postman_collection.json`
-2. Import the collection into Postman
-3. Configure your API key in the collection variables
-4. Start making API calls!
+```
+2026-03-06 17:00:00 - INFO - Authenticating to https://turbo.example.com...
+2026-03-06 17:00:01 - INFO - Authentication successful
+2026-03-06 17:00:01 - INFO - Parsed 14 groups from CSV file
+2026-03-06 17:00:01 - INFO - Backup saved to: backups/groups_backup_1709755201.json
+2026-03-06 17:00:01 - INFO - Found 5 existing user groups
+2026-03-06 17:00:01 - INFO - 
+============================================================
+2026-03-06 17:00:01 - INFO - Processing 14 groups...
+2026-03-06 17:00:01 - INFO - 
+============================================================
 
-See the [Postman Collection README](cloudability/postman-collection/README.md) for more details.
+2026-03-06 17:00:01 - INFO - [1/14] Processing: Production VMs
+2026-03-06 17:00:02 - INFO - ✓ Created group: Production VMs
+2026-03-06 17:00:03 - INFO - [2/14] Processing: Development VMs
+2026-03-06 17:00:03 - INFO - ✓ Created group: Development VMs
+...
 
----
+2026-03-06 17:00:20 - INFO -
+============================================================
+2026-03-06 17:00:20 - INFO - SUMMARY
+2026-03-06 17:00:20 - INFO - ============================================================
+2026-03-06 17:00:20 - INFO - Total groups in CSV:  14
+2026-03-06 17:00:20 - INFO - Successfully created: 10
+2026-03-06 17:00:20 - INFO - Successfully updated: 2
+2026-03-06 17:00:20 - INFO - Skipped (existing):   2
+2026-03-06 17:00:20 - INFO - Failed:               0
+2026-03-06 17:00:20 - INFO - ============================================================
+```
+
+## Backup Files
+
+The script automatically creates a backup of all group configurations before processing:
+
+- Location: `backups/groups_backup_<timestamp>.json`
+- Format: JSON
+- Contains: All group configurations from the CSV
+
+## Error Handling
+
+The script handles various error scenarios:
+
+- **Authentication failures** - Invalid credentials
+- **Network errors** - Connection timeouts, DNS issues
+- **Invalid CSV format** - Missing required columns
+- **Duplicate groups** - Groups that already exist
+- **API errors** - Rate limiting, server errors
+- **Invalid configurations** - Malformed regex, invalid entity types
+
+## Tips and Best Practices
+
+1. **Test with Dry Run** - Always use `--dry-run` first to preview changes
+2. **Secure Password Input** - Omit password from command line to be prompted securely
+3. **Start Small** - Test with a few groups before creating many
+4. **Use Descriptive Names** - Make group names clear and meaningful
+5. **Multiple Criteria** - Use multiple rows with the same group_name for complex filtering
+6. **Update Mode** - Use `--update` to modify existing groups with new criteria
+7. **Document Filters** - Use the description column to explain complex filters
+8. **Backup Regularly** - Keep copies of your CSV files
+9. **Check Logs** - Review the output for any warnings or errors
+10. **Regex Testing** - Test regex patterns before using them in production
+
+## Regex Pattern Examples
+
+### VM Name Patterns
+- `prod.*` - Starts with "prod"
+- `.*-prod` - Ends with "-prod"
+- `.*test.*` - Contains "test"
+- `vm-[0-9]+` - Matches "vm-" followed by numbers
+- `(dev|test|qa).*` - Starts with dev, test, or qa
+
+### Tag Patterns
+- `environment=production` - Exact tag match
+- `team=.*` - Any value for team tag
+- `cost-center=12345` - Specific cost center
 
 ## Troubleshooting
 
-### Common Issues
+### Authentication Fails
+- Verify the Turbonomic URL is correct
+- Check username and password
+- Ensure the user has permissions to create groups
 
-#### "Missing api key. Quitting"
-**Solution:** Ensure you're passing your API key as the first command-line argument:
-```bash
-python script_name.py YOUR_API_KEY
-```
+### Groups Not Created
+- Check the CSV format matches the required columns
+- Verify entity types and filter types are valid
+- Review the error messages in the output
 
-#### "No csv files found in current directory"
-**Solution:** 
-- Ensure your CSV file is in the same directory as the script
-- Check that the file has a `.csv` extension
-- Make sure the file doesn't start with a dot (`.`)
+### SSL Certificate Errors
+- The script disables SSL verification for self-signed certificates
+- For production, consider using valid SSL certificates
 
-#### Rate Limiting (429 errors)
-**Solution:** 
-- For Account Group Updater, increase the delay: `python update_ag_entries.py YOUR_API_KEY -delay 1.0`
-- Run the script multiple times if it fails partway through
-- Process smaller batches of data
+### Rate Limiting
+- The script includes a 0.5-second delay between requests
+- If you encounter rate limiting, the script will log the error
 
-#### "Account Groups not found"
-**Solution:** 
-- Verify the account group names in your CSV exactly match those in Cloudability
-- Check for extra spaces or typos
-- The script will list all valid account groups when this error occurs
+## API Reference
 
-#### "Account not found in account mapping"
-**Solution:** 
-- Verify the account identifier exists in Cloudability
-- For AWS accounts, ensure the format matches (with or without hyphens)
-- Check that the account is active and not archived
+This script uses the Turbonomic REST API v3:
 
-#### CSV Encoding Issues
-**Solution:** 
-- Save your CSV as UTF-8 encoding
-- The tools use `charset-normalizer` to detect encoding automatically
-- If issues persist, try opening and re-saving the CSV in a text editor with UTF-8 encoding
+- **Authentication**: `POST /api/v3/login`
+- **Create Group**: `POST /api/v3/groups/`
+- **List Groups**: `GET /api/v3/groups`
 
-#### Business Mapping Expression Errors
-**Solution:** 
-- Use `-debug` mode to see the generated JSON before applying
-- Check for special characters in values (especially single quotes)
-- Ensure match dimension format is correct: `TAG['name']` or `DIMENSION['name']`
-- The tool will show the exact location of syntax errors
+For more information, see the [Turbonomic API Documentation](https://www.ibm.com/docs/en/tarm/8.19.1?topic=documentation-api-reference).
 
----
+## License
 
-## Best Practices
+Copyright IBM All Rights Reserved.
 
-### Before Running Scripts
+SPDX-License-Identifier: Apache-2.0
 
-1. **Test with Small Datasets First**
-   - Start with a CSV containing just a few rows
-   - Verify the results before processing larger datasets
+## Support
 
-2. **Backup Your Data**
-   - The Account Group Updater creates automatic backups
-   - For other tools, export current configurations from Cloudability UI first
+For issues or questions:
+1. Check the troubleshooting section above
+2. Review the Turbonomic API documentation
+3. Check the script logs for detailed error messages
 
-3. **Use Debug Mode**
-   - Business Mapping Updater supports `-debug` flag
-   - Review generated JSON files before applying changes
+## Version History
 
-4. **Validate CSV Format**
-   - Check column headers match requirements exactly
-   - Ensure no extra spaces or special characters
-   - Use UTF-8 encoding
+- **v2.0** - Enhanced functionality
+  - **Secure password input** - Prompts for password instead of requiring it as argument
+  - **Update existing groups** - New `--update` flag to modify existing groups
+  - **Multiple criteria per group** - Support multiple filter criteria with AND/OR logic
+  - Improved CSV parsing to group criteria by group name
+  - Enhanced documentation with multiple criteria examples
 
-### During Execution
-
-1. **Monitor Output**
-   - Scripts provide detailed logging
-   - Watch for error messages or warnings
-   - Note which items were skipped or failed
-
-2. **Handle Rate Limits**
-   - Use delay parameters when available
-   - Be prepared to re-run scripts if they timeout
-   - Process data in smaller batches for large datasets
-
-### After Running Scripts
-
-1. **Verify in Cloudability UI**
-   - Check that changes were applied correctly
-   - Verify views, mappings, or account groups as expected
-
-2. **Keep Backup Files**
-   - Store backup CSVs in a safe location
-   - Document what changes were made and when
-
-3. **Review Logs**
-   - Save script output for troubleshooting
-   - Note any accounts or items that were skipped
-
----
-
-## Contributing
-
-We very much welcome contributions! While we can't promise that we'll use everything you might want to share, we're quite eager to see what the Apptio / Cloudability community is cooking up.
-
-### How to Contribute
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Make your changes
-4. Test thoroughly
-5. Commit your changes (`git commit -m 'Add amazing feature'`)
-6. Push to the branch (`git push origin feature/amazing-feature`)
-7. Open a Pull Request
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for more detailed guidelines.
-
----
-
-## Disclaimer
-
-These tools are provided as-is and are primarily intended to be used as examples for your own integrations. IBM Apptio does not provide direct support for this library, but do feel free to report bugs by [opening an issue](https://github.com/IBM/Apptio-Tools-1/issues).
-
-**Important:**
-- Always test in a non-production environment first
-- Review all changes before applying to production
-- Keep backups of your data
-- Use at your own risk
-
----
-
-## Additional Resources
-
-- [Apptio Tools Library](https://github.com/ibm/apptio-tools-lib) - Required Python library
-- [Cloudability API Documentation](https://developers.cloudability.com/) - Official API docs
-- [IBM Apptio Support](https://www.ibm.com/products/apptio) - Product information
-
----
-
-**Questions or Issues?** Open an issue on [GitHub](https://github.com/IBM/Apptio-Tools-1/issues) or check existing issues for solutions.
+- **v1.0** - Initial release
+  - Dynamic group creation from CSV
+  - Support for multiple entity types
+  - Dry-run mode
+  - Duplicate detection
+  - Comprehensive error handling
