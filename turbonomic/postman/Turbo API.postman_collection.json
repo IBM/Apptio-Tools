@@ -1,0 +1,519 @@
+{
+	"info": {
+		"_postman_id": "bad14b60-1139-4f82-b15f-f6aa0db25444",
+		"name": "Turbo API",
+		"description": "Beginner collection for various API calls",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "39368835"
+	},
+	"item": [
+		{
+			"name": "Login (hardcoded - works)",
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "urlencoded",
+					"urlencoded": [
+						{
+							"key": "username",
+							"value": "",
+							"type": "default"
+						},
+						{
+							"key": "password",
+							"value": "",
+							"type": "default"
+						}
+					]
+				},
+				"url": {
+					"raw": "https://{{turbourl}}/api/v3/login?hateoas=true",
+					"protocol": "https",
+					"host": [
+						"{{turbourl}}"
+					],
+					"path": [
+						"api",
+						"v3",
+						"login"
+					],
+					"query": [
+						{
+							"key": "hateoas",
+							"value": "true"
+						}
+					]
+				},
+				"description": "Request to login and get JSESSIONID (with hardcoded user credentials for testing)"
+			},
+			"response": []
+		},
+		{
+			"name": "Get ALL Targets",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://{{turbourl}}/api/v3/targets",
+					"protocol": "https",
+					"host": [
+						"{{turbourl}}"
+					],
+					"path": [
+						"api",
+						"v3",
+						"targets"
+					]
+				},
+				"description": "Request to get all connected targets (AWS, AZURE, Dynatrace, etc)"
+			},
+			"response": []
+		},
+		{
+			"name": "Get ALL Entities",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://{{turbourl}}/api/v3/markets/Market/entities?ascending=true",
+					"protocol": "https",
+					"host": [
+						"{{turbourl}}"
+					],
+					"path": [
+						"api",
+						"v3",
+						"markets",
+						"Market",
+						"entities"
+					],
+					"query": [
+						{
+							"key": "ascending",
+							"value": "true"
+						}
+					]
+				},
+				"description": "Request to get ALL entities found in the market (in order to get their associated UUIDs)"
+			},
+			"response": []
+		},
+		{
+			"name": "Get ALL available markets",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://{{turbourl}}/api/v3/markets/",
+					"protocol": "https",
+					"host": [
+						"{{turbourl}}"
+					],
+					"path": [
+						"api",
+						"v3",
+						"markets",
+						""
+					]
+				},
+				"description": "Request to get the Market UUID if needed"
+			},
+			"response": []
+		},
+		{
+			"name": "Get ALL Executed Actions",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"actionStateList\": [\n        \"SUCCEEDED\",\n        \"FAILED\"\n    ],\n    \"environmentType\": \"CLOUD\",\n    \"detailLevel\": \"EXECUTION\",\n    \"endDate\": 1744229327318,\n    \"endTime\": 1744229327318,\n    \"startDate\": 1739394527318,\n    \"startTime\": 1739394527318\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://{{turbourl}}/api/v3/markets/Market/actions?ascending=false&cursor=0&disable_hateoas=true&forceExpansionOfAggregatedEntities=true&limit=30&order_by=savings",
+					"protocol": "https",
+					"host": [
+						"{{turbourl}}"
+					],
+					"path": [
+						"api",
+						"v3",
+						"markets",
+						"Market",
+						"actions"
+					],
+					"query": [
+						{
+							"key": "ascending",
+							"value": "false"
+						},
+						{
+							"key": "cursor",
+							"value": "0"
+						},
+						{
+							"key": "disable_hateoas",
+							"value": "true"
+						},
+						{
+							"key": "forceExpansionOfAggregatedEntities",
+							"value": "true"
+						},
+						{
+							"key": "limit",
+							"value": "30"
+						},
+						{
+							"key": "order_by",
+							"value": "savings"
+						}
+					]
+				},
+				"description": "Request to get ALL executed actions for the entire market"
+			},
+			"response": []
+		},
+		{
+			"name": "Get ALL Recommended Actions",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"actionStateList\": [\n        \"READY\",\n        \"QUEUED\",\n        \"IN_PROGRESS\",\n        \"ACCEPTED\"\n    ],\n    \"actionTypeList\": [\n        \"RESIZE\",\n        \"MOVE\",\n        \"SUSPEND\",\n        \"SCALE\",\n        \"RECONFIGURE\"\n    ],\n    \"relatedEntityTypes\": [\n        \"WorkloadController\",\n        \"VirtualMachine\",\n        \"VirtualVolume\",\n        \"ApplicationComponent\",\n        \"ContainerPod\"\n    ],\n    \"environmentType\": \"CLOUD\",\n    \"detailLevel\": \"EXECUTION\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://{{turbourl}}/api/v3/markets/Market/actions?ascending=false&cursor=0&disable_hateoas=true&forceExpansionOfAggregatedEntities=true&order_by=savings",
+					"protocol": "https",
+					"host": [
+						"{{turbourl}}"
+					],
+					"path": [
+						"api",
+						"v3",
+						"markets",
+						"Market",
+						"actions"
+					],
+					"query": [
+						{
+							"key": "ascending",
+							"value": "false",
+							"description": "Options: true, false"
+						},
+						{
+							"key": "cursor",
+							"value": "0"
+						},
+						{
+							"key": "disable_hateoas",
+							"value": "true"
+						},
+						{
+							"key": "forceExpansionOfAggregatedEntities",
+							"value": "true"
+						},
+						{
+							"key": "limit",
+							"value": "30",
+							"disabled": true
+						},
+						{
+							"key": "order_by",
+							"value": "savings",
+							"description": "Options: name, severity, risk_category, savings, creation_date, disruptiveness, reversibility, idle_time, file_size, risk, date_executed, execution_error, importance"
+						},
+						{
+							"key": "environment_type",
+							"value": "cloud",
+							"description": "Options: hybrid, cloud, onprem, unknown",
+							"disabled": true
+						}
+					]
+				},
+				"description": "Request to get ALL recommended actions for the entire market"
+			},
+			"response": []
+		},
+		{
+			"name": "Get Group UUIDs",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://{{turbourl}}/api/v3/groups?group_origin=USER",
+					"protocol": "https",
+					"host": [
+						"{{turbourl}}"
+					],
+					"path": [
+						"api",
+						"v3",
+						"groups"
+					],
+					"query": [
+						{
+							"key": "group_origin",
+							"value": "USER",
+							"description": "Options are USER, DISCOVERED or SYSTEM"
+						}
+					]
+				},
+				"description": "Request to get ALL Group UUIDs that are USER created (not imported or system generated)"
+			},
+			"response": []
+		},
+		{
+			"name": "Get Executed Actions by Group UUID",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"actionStateList\": [\n        \"SUCCEEDED\",\n        \"FAILED\"\n    ],\n    \"actionTypeList\": [\n        \"RESIZE\",\n        \"MOVE\",\n        \"SUSPEND\",\n        \"SCALE\",\n        \"RECONFIGURE\"\n    ],\n    \"relatedEntityTypes\": [\n        \"WorkloadController\",\n        \"VirtualMachine\",\n        \"VirtualVolume\",\n        \"ApplicationComponent\",\n        \"ContainerPod\"\n    ],\n    \"environmentType\": \"CLOUD\",\n    \"detailLevel\": \"EXECUTION\",\n    \"endDate\": 1744229327318,\n    \"endTime\": 1744229327318,\n    \"startDate\": 1739394527318,\n    \"startTime\": 1739394527318\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://{{turbourl}}/api/v3/groups/287004697825152/actions?ascending=false&cursor=0&disable_hateoas=true&forceExpansionOfAggregatedEntities=true",
+					"protocol": "https",
+					"host": [
+						"{{turbourl}}"
+					],
+					"path": [
+						"api",
+						"v3",
+						"groups",
+						"287004697825152",
+						"actions"
+					],
+					"query": [
+						{
+							"key": "ascending",
+							"value": "false"
+						},
+						{
+							"key": "cursor",
+							"value": "0"
+						},
+						{
+							"key": "disable_hateoas",
+							"value": "true"
+						},
+						{
+							"key": "forceExpansionOfAggregatedEntities",
+							"value": "true"
+						},
+						{
+							"key": "limit",
+							"value": "30",
+							"disabled": true
+						},
+						{
+							"key": "order_by",
+							"value": "savings",
+							"disabled": true
+						}
+					]
+				},
+				"description": "Request to get all executed actions by a specific Group UUID. Note, you must include a start/end date/time and it must be in Epoch format."
+			},
+			"response": []
+		},
+		{
+			"name": "Get Recommended Actions by Group UUID",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"actionStateList\": [\n        \"READY\",\n        \"QUEUED\",\n        \"IN_PROGRESS\",\n        \"ACCEPTED\"\n    ],\n    \"actionTypeList\": [\n        \"RESIZE\",\n        \"MOVE\",\n        \"SUSPEND\",\n        \"SCALE\",\n        \"RECONFIGURE\"\n    ],\n    \"relatedEntityTypes\": [\n        \"WorkloadController\",\n        \"VirtualMachine\",\n        \"VirtualVolume\",\n        \"ApplicationComponent\",\n        \"ContainerPod\"\n    ],\n    \"environmentType\": \"CLOUD\",\n    \"detailLevel\": \"EXECUTION\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://{{turbourl}}/api/v3/groups/287004697825152/actions?ascending=false&cursor=0&disable_hateoas=true&forceExpansionOfAggregatedEntities=true",
+					"protocol": "https",
+					"host": [
+						"{{turbourl}}"
+					],
+					"path": [
+						"api",
+						"v3",
+						"groups",
+						"287004697825152",
+						"actions"
+					],
+					"query": [
+						{
+							"key": "ascending",
+							"value": "false"
+						},
+						{
+							"key": "cursor",
+							"value": "0"
+						},
+						{
+							"key": "disable_hateoas",
+							"value": "true"
+						},
+						{
+							"key": "forceExpansionOfAggregatedEntities",
+							"value": "true"
+						},
+						{
+							"key": "limit",
+							"value": "30",
+							"disabled": true
+						},
+						{
+							"key": "order_by",
+							"value": "savings",
+							"disabled": true
+						}
+					]
+				},
+				"description": "Request to get all recommended actions by a specific Group UUID"
+			},
+			"response": []
+		},
+		{
+			"name": "Create group by Tag",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"isStatic\": false,\n    \"displayName\": \"NG-k8s-appidapm0001256\",\n    \"memberUuidList\": [],\n    \"criteriaList\": [\n        {\n            \"expType\": \"EQ\",\n            \"expVal\": \"applicationid=apm0001256\",\n            \"filterType\": \"namespacesByTag\",\n            \"caseSensitive\": false\n        }\n    ],\n    \"groupType\": \"Namespace\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://{{turbourl}}/api/v3/groups/?disable_hateoas=true",
+					"protocol": "https",
+					"host": [
+						"{{turbourl}}"
+					],
+					"path": [
+						"api",
+						"v3",
+						"groups",
+						""
+					],
+					"query": [
+						{
+							"key": "disable_hateoas",
+							"value": "true"
+						}
+					]
+				},
+				"description": "Request to create a group by Tag (example included to create this group by the applicationID tag)"
+			},
+			"response": []
+		},
+		{
+			"name": "Login (testing in progress)",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "urlencoded",
+					"urlencoded": [
+						{
+							"key": "{{username}}",
+							"value": "",
+							"type": "default"
+						},
+						{
+							"key": "{{password}}",
+							"value": "",
+							"type": "default"
+						}
+					]
+				},
+				"url": {
+					"raw": "https://{{turbourl}}/api/v3/login?hateoas=true",
+					"protocol": "https",
+					"host": [
+						"{{turbourl}}"
+					],
+					"path": [
+						"api",
+						"v3",
+						"login"
+					],
+					"query": [
+						{
+							"key": "hateoas",
+							"value": "true"
+						}
+					]
+				},
+				"description": "Run this first to get your JSESSIONID token for authentication. Note this is only valid for 30 minutes (or, whatever you have the Web Session Timeout set to), this applies to both script/command line and web UI/swgger. After 30 minutes you will need to re-login to the web UI to use swagger or re-authenticate to the /login API again via script/command line to generate the new JSESSIONID to continue making API calls."
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "turbourl",
+			"value": "cldp-prudentialgiit.apptio.turbonomic.ibmappdomain.cloud",
+			"type": "string"
+		},
+		{
+			"key": "username",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "password",
+			"value": "",
+			"type": "string"
+		}
+	]
+}
