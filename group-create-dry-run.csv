@@ -1,0 +1,5 @@
+group_name,group_type,filter_type,exp_type,exp_val,case_sensitive,description
+Production VMs new,VirtualMachine,vmsByName,RXEQ,prod.*,FALSE,All VMs with names starting with prod
+Development VMs new,VirtualMachine,vmsByName,RXEQ,.*dev.*,FALSE,All VMs with names containing dev
+Dev VMs by tag,VirtualMachine,vmsByTag,EQ,afl-environment=dev,FALSE,VMs tagged as Dev
+Azure VMs,VirtualMachine,vmsByCloudProvider,EQ,azure,FALSE,VMs running on Azure

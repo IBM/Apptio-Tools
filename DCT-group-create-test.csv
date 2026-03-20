@@ -1,0 +1,3 @@
+group_name,group_type,filter_type,exp_type,exp_val,case_sensitive,description
+TWS-test-consistent-resizing,VirtualMachine,vmsByName,,uncuat04data28|uncprd04app36|uncprd04app34|uncuat04app59|uncuat01wbd01,FALSE,3 different VM names
+TWS-test2-consistent-resizing,VirtualMachine,vmsByName,,uncuat04data.*,FALSE,All VMs starting with uncuat04data
