@@ -61,15 +61,6 @@ Test scripts on multiple calls that:
 - Validate response shape (arrays, required fields present)
 - Auto-capture key IDs into environment variables for use in subsequent calls:
 
-### Example Responses
-
-Inline example responses on priority calls using realistic anonymized data that matches the actual API response shape:
-- 000 Authentication 
-- 050 Credentialing — AWS, Azure, GCP
-- 600 Budgets 
-- 700 Cost Reporting 
-- 800 Rightsizing — Examples sub-folder 
-
 ---
 
 ## Known Limitations
